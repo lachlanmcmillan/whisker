@@ -1,5 +1,5 @@
 import { sqlite3Worker1Promiser, type SQLitePromiser } from '@sqlite.org/sqlite-wasm';
-import { migrations } from './migrations';
+import { MAX_MIGRATION, migrations } from './migrations';
 
 interface DB {
   promiser: SQLitePromiser;
@@ -19,6 +19,7 @@ async function runMigrations({ promiser, dbId }: DB): Promise<void> {
   const currentVersion = (versionResult.result.resultRows[0]?.user_version as number) ?? 0;
 
   for (const migration of migrations) {
+    if (migration.version > MAX_MIGRATION) break;
     if (migration.version > currentVersion) {
       await promiser('exec', { dbId, sql: migration.sql });
       await promiser('exec', { dbId, sql: `PRAGMA user_version = ${migration.version}` });
@@ -68,4 +69,26 @@ export function getDB(): DB {
     throw new Error('Database not initialized. Call initDB() first.');
   }
   return db;
+}
+
+type SqlValue = string | number | null | Uint8Array;
+
+export async function sql<T = Record<string, SqlValue>>(
+  strings: TemplateStringsArray,
+  ...values: SqlValue[]
+): Promise<T[]> {
+  const { promiser, dbId } = getDB();
+
+  const query = strings.join('?');
+  const bind = values.length > 0 ? values : undefined;
+
+  const result = await promiser('exec', {
+    dbId,
+    sql: query,
+    bind,
+    returnValue: 'resultRows',
+    rowMode: 'object',
+  });
+
+  return result.result.resultRows as T[];
 }

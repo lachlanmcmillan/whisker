@@ -1,5 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
-import type { Feed, FeedEntry } from "../feed";
+import type { Feed, FeedEntry } from "../../models/feed.model";
 
 const parser = new XMLParser({
   ignoreAttributes: false,

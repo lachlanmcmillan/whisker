@@ -1,6 +1,6 @@
 import { useState } from "react";
 import DOMPurify from "dompurify";
-import type { FeedEntry } from "../lib/feed";
+import type { FeedEntry } from "../models/feed.model";
 import { Button } from "./Button";
 import { Link } from "./Link";
 import { Title } from "./Title";

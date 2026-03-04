@@ -3,6 +3,8 @@ export interface Migration {
   sql: string;
 }
 
+export const MAX_MIGRATION = 4;
+
 export const migrations: Migration[] = [
   {
     version: 1,
@@ -38,6 +40,37 @@ export const migrations: Migration[] = [
     sql: `
       ALTER TABLE entries RENAME COLUMN feed_id TO feedId;
       ALTER TABLE entries RENAME COLUMN entry_id TO entryId;
+    `,
+  },
+  {
+    version: 3,
+    sql: `
+      CREATE TABLE IF NOT EXISTS thumbnailCache (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entryId INTEGER NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
+        url TEXT NOT NULL,
+        data BLOB NOT NULL,
+        contentType TEXT NOT NULL,
+        fetchedAt TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(entryId, url)
+      );
+    `,
+  },
+  {
+    version: 4,
+    sql: `
+      DROP TABLE IF EXISTS thumbnailCache;
+
+      CREATE TABLE thumbnailCache (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entryId INTEGER NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
+        url TEXT NOT NULL,
+        data TEXT NOT NULL,
+        contentType TEXT NOT NULL,
+        fetchedAt TEXT NOT NULL DEFAULT (datetime('now')),
+        lastAccessedAt TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(entryId, url)
+      );
     `,
   },
 ];

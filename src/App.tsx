@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { parseAtomFeed } from "./lib/atom/parse";
 import { parseRssFeed } from "./lib/rss/parse";
-import type { Feed } from "./lib/feed";
+import type { Feed } from "./models/feed.model";
 import { EntryItem } from "./components/EntryItem";
 import { Button } from "./components/Button";
 import { Title } from "./components/Title";
 import { DatabaseExplorer } from "./DatabaseExplorer";
-import { getAllFeeds, upsertFeed } from "./lib/sqlite/feed-service";
+import { readAllFeeds, upsertFeed } from "./models/feed.model";
 import atomXml from "../yt-asionometry.xml?raw";
 import rssXml from "../substack-signull.xml?raw";
 import styles from "./App.module.css";
@@ -19,13 +19,12 @@ function App() {
 
   useEffect(() => {
     (async () => {
-      let loaded = await getAllFeeds();
-      console.log("loaded: ", loaded)
+      let loaded = await readAllFeeds();
 
       if (loaded.length === 0) {
         await upsertFeed(parseAtomFeed(atomXml));
         await upsertFeed(parseRssFeed(rssXml));
-        loaded = await getAllFeeds();
+        loaded = await readAllFeeds();
       }
 
       setFeeds(loaded);
