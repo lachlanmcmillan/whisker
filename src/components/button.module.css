@@ -1,0 +1,34 @@
+.button {
+  border-radius: 6px;
+  border: 1px solid #333;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: inherit;
+  background: none;
+  color: #888;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+.button:hover {
+  border-color: #646cff;
+}
+
+.active {
+  color: #fff;
+  border-color: #646cff;
+  background: #646cff22;
+}
+
+.ghost {
+  border: none;
+  padding: 0;
+  background: none;
+  color: #646cff;
+  font-size: 0.85rem;
+}
+
+.ghost:hover {
+  text-decoration: underline;
+}

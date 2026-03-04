@@ -1,0 +1,46 @@
+.entry {
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: left;
+  display: flex;
+  gap: 1rem;
+}
+
+.entry img {
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.entryBody {
+  min-width: 0;
+}
+
+.meta {
+  color: #888;
+  font-size: 0.85rem;
+  margin: 0.25rem 0;
+}
+
+.description {
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  color: #999;
+  margin: 0.5rem 0 0;
+  max-height: 6rem;
+  overflow: hidden;
+}
+
+.content {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #ccc;
+  overflow-wrap: break-word;
+}
+
+.content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
