@@ -1,0 +1,22 @@
+.input {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #fff;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #646cff;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}

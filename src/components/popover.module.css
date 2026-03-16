@@ -1,0 +1,22 @@
+.wrapper {
+  position: relative;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 10;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 1rem;
+  min-width: 300px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}

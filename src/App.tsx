@@ -1,14 +1,11 @@
 import { createSignal, onMount, Show, For } from "solid-js";
-import { parseAtomFeed } from "./lib/atom/parse";
-import { parseRssFeed } from "./lib/rss/parse";
 import type { Feed } from "./models/feed.model";
 import { EntryItem } from "./components/EntryItem";
 import { Button } from "./components/Button";
 import { Title } from "./components/Title";
+import { AddFeedPopover } from "./components/AddFeedPopover";
 import { DatabaseExplorer } from "./DatabaseExplorer";
-import { readAllFeeds, upsertFeed } from "./models/feed.model";
-import atomXml from "../yt-asionometry.xml?raw";
-import rssXml from "../substack-signull.xml?raw";
+import { readAllFeeds } from "./models/feed.model";
 import styles from "./App.module.css";
 
 function App() {
@@ -21,8 +18,6 @@ function App() {
     let loaded = await readAllFeeds();
 
     if (loaded.length === 0) {
-      await upsertFeed(parseAtomFeed(atomXml));
-      await upsertFeed(parseRssFeed(rssXml));
       loaded = await readAllFeeds();
     }
 
@@ -31,7 +26,10 @@ function App() {
   });
 
   return (
-    <Show when={!loading()} fallback={<div class={styles.feed}>Loading feeds...</div>}>
+    <Show
+      when={!loading()}
+      fallback={<div class={styles.feed}>Loading feeds...</div>}
+    >
       <Show
         when={view() === "feeds"}
         fallback={
@@ -59,6 +57,7 @@ function App() {
                     </Button>
                   )}
                 </For>
+                <AddFeedPopover onAdd={(url) => console.log("TODO: add feed", url)} />
                 <Button onClick={() => setView("explorer")}>DB Explorer</Button>
               </nav>
 
