@@ -1,18 +1,16 @@
 import { createSignal, onMount, Show, For } from "solid-js";
-import type { Feed } from "./models/feed.model";
 import { EntryItem } from "./components/EntryItem";
 import { Button } from "./components/Button";
 import { Title } from "./components/Title";
 import { AddFeedPopover } from "./components/AddFeedPopover";
 import { DatabaseExplorer } from "./DatabaseExplorer";
 import { GridView } from "./components/GridView";
-import { readAllFeeds } from "./models/feed.model";
 import { refreshFeed } from "./lib/feed/addNewFeed";
-import styles from "./App.module.css";
+import { feeds, loadFeeds } from "./stores/feeds.store";
 import { appSettingsStore } from "./stores/settings.store";
+import styles from "./App.module.css";
 
 function App() {
-  const [feeds, setFeeds] = createSignal<Feed[]>([]);
   const [activeIndex, setActiveIndex] = createSignal(0);
   const [loading, setLoading] = createSignal(true);
   const [refreshing, setRefreshing] = createSignal(false);
@@ -20,23 +18,15 @@ function App() {
   const [view, setView] = createSignal<"feeds" | "explorer">("feeds");
   const [appSettings, setAppSettings] = appSettingsStore;
 
-  const refreshFeeds = async () => {
-    const result = await readAllFeeds();
-    if (result.data) {
-      setFeeds(result.data);
-    }
-    return result;
-  };
-
   const handleFeedAdded = async () => {
-    const result = await refreshFeeds();
+    const result = await loadFeeds();
     if (result.data) {
       setActiveIndex(result.data.length - 1);
     }
   };
 
   const handleRefresh = async () => {
-    const feed = feeds()[activeIndex()];
+    const feed = feeds[activeIndex()];
     const url = feed?.feedUrl || feed?.link;
     if (!url) {
       setRefreshError("No feed URL available. Try removing and re-adding this feed.");
@@ -54,11 +44,11 @@ function App() {
       return;
     }
 
-    await refreshFeeds();
+    await loadFeeds();
   };
 
   onMount(async () => {
-    await refreshFeeds();
+    await loadFeeds();
     setLoading(false);
   });
 
@@ -101,11 +91,11 @@ function App() {
           <Show
             when={appSettings.layout === "Grid"}
             fallback={
-              <Show when={feeds()[activeIndex()]}>
+              <Show when={feeds[activeIndex()]}>
                 {(feed) => (
                   <>
                     <nav class={styles.feedTabs}>
-                      <For each={feeds()}>
+                      <For each={[...feeds]}>
                         {(f, i) => (
                           <Button
                             active={i() === activeIndex()}
@@ -139,7 +129,7 @@ function App() {
 
                     <ul class={styles.entries}>
                       <For each={feed().entries}>
-                        {(entry) => <EntryItem entry={entry} onToggleRead={refreshFeeds} />}
+                        {(entry) => <EntryItem entry={entry} />}
                       </For>
                     </ul>
                   </>
@@ -147,7 +137,7 @@ function App() {
               </Show>
             }
           >
-            <GridView feeds={feeds()} onToggleRead={refreshFeeds} />
+            <GridView />
           </Show>
         </div>
       </Show>

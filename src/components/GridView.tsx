@@ -1,9 +1,9 @@
 import { Show, For } from "solid-js";
-import type { Feed, FeedEntry } from "../models/feed.model";
-import { markEntryOpened, clearEntryOpened } from "../models/feed.model";
+import type { FeedEntry } from "../models/feed.model";
 import { CachedThumbnail } from "./CachedThumbnail";
 import { CheckButton } from "./CheckButton";
 import { timeAgo } from "../lib/timeAgo";
+import { feeds, toggleEntryRead } from "../stores/feeds.store";
 import styles from "./gridView.module.css";
 
 interface GridEntry {
@@ -11,7 +11,7 @@ interface GridEntry {
   feedTitle: string;
 }
 
-function flattenAndSort(feeds: Feed[]): GridEntry[] {
+function flattenAndSort(feeds: readonly { title: string; entries: readonly FeedEntry[] }[]): GridEntry[] {
   const items: GridEntry[] = [];
   for (const feed of feeds) {
     for (const entry of feed.entries) {
@@ -26,8 +26,8 @@ function flattenAndSort(feeds: Feed[]): GridEntry[] {
   return items;
 }
 
-export function GridView(props: { feeds: Feed[]; onToggleRead?: () => void }) {
-  const items = () => flattenAndSort(props.feeds);
+export function GridView() {
+  const items = () => flattenAndSort(feeds);
 
   return (
     <ul class={styles.grid}>
@@ -36,21 +36,16 @@ export function GridView(props: { feeds: Feed[]; onToggleRead?: () => void }) {
           <li class={styles.item} data-entry-id={item.entry.entryId} data-opened-at={item.entry.openedAt}>
             <CheckButton
               checked={!!item.entry.openedAt}
-              onClick={async () => {
+              onClick={() => {
                 if (!item.entry.feedId) return;
-                if (item.entry.openedAt) {
-                  await clearEntryOpened(item.entry.feedId, item.entry.entryId);
-                } else {
-                  await markEntryOpened(item.entry.feedId, item.entry.entryId);
-                }
-                props.onToggleRead?.();
+                toggleEntryRead(item.entry.feedId, item.entry.entryId, !!item.entry.openedAt);
               }}
             />
             <a
               href={item.entry.link}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => item.entry.feedId && markEntryOpened(item.entry.feedId, item.entry.entryId)}
+              onClick={() => item.entry.feedId && toggleEntryRead(item.entry.feedId, item.entry.entryId, false)}
             >
               <Show
                 when={item.entry.thumbnail}
@@ -69,7 +64,7 @@ export function GridView(props: { feeds: Feed[]; onToggleRead?: () => void }) {
                   href={item.entry.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => item.entry.feedId && markEntryOpened(item.entry.feedId, item.entry.entryId)}
+                  onClick={() => item.entry.feedId && toggleEntryRead(item.entry.feedId, item.entry.entryId, false)}
                 >
                   {item.entry.title}
                 </a>

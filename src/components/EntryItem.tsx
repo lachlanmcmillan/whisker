@@ -1,36 +1,34 @@
 import { createSignal, Show } from "solid-js";
 import DOMPurify from "dompurify";
 import type { FeedEntry } from "../models/feed.model";
-import { markEntryOpened, clearEntryOpened } from "../models/feed.model";
 import { Button } from "./Button";
 import { CachedThumbnail } from "./CachedThumbnail";
 import { CheckButton } from "./CheckButton";
 import { Link } from "./Link";
 import { Title } from "./Title";
+import { toggleEntryRead } from "../stores/feeds.store";
 import styles from "./entryItem.module.css";
 
-export function EntryItem(props: { entry: FeedEntry; onToggleRead?: () => void }) {
+export function EntryItem(props: { entry: FeedEntry }) {
   const [expanded, setExpanded] = createSignal(false);
+
+  const handleOpen = () => {
+    if (props.entry.feedId) {
+      toggleEntryRead(props.entry.feedId, props.entry.entryId, false);
+    }
+  };
 
   return (
     <li class={styles.entry}>
       <CheckButton
         checked={!!props.entry.openedAt}
-        onClick={async () => {
+        onClick={() => {
           if (!props.entry.feedId) return;
-          if (props.entry.openedAt) {
-            await clearEntryOpened(props.entry.feedId, props.entry.entryId);
-          } else {
-            await markEntryOpened(props.entry.feedId, props.entry.entryId);
-          }
-          props.onToggleRead?.();
+          toggleEntryRead(props.entry.feedId, props.entry.entryId, !!props.entry.openedAt);
         }}
       />
       <Show when={props.entry.thumbnail}>
-        <Link
-          href={props.entry.link}
-          onClick={() => props.entry.feedId && markEntryOpened(props.entry.feedId, props.entry.entryId)}
-        >
+        <Link href={props.entry.link} onClick={handleOpen}>
           <CachedThumbnail
             url={props.entry.thumbnail!}
             width={120}
@@ -40,10 +38,7 @@ export function EntryItem(props: { entry: FeedEntry; onToggleRead?: () => void }
       </Show>
       <div class={styles.entryBody}>
         <Title level={2}>
-          <Link
-            href={props.entry.link}
-            onClick={() => props.entry.feedId && markEntryOpened(props.entry.feedId, props.entry.entryId)}
-          >
+          <Link href={props.entry.link} onClick={handleOpen}>
             {props.entry.title}
           </Link>
         </Title>
