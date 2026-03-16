@@ -1,5 +1,5 @@
 import { createSignal, onMount, Show, For } from "solid-js";
-import { getDB } from "./lib/sqlite/sqlite";
+import { sql } from "./lib/sqlite/sqlite";
 import { Button } from "./components/Button";
 import { Title } from "./components/Title";
 import styles from "./DatabaseExplorer.module.css";
@@ -24,14 +24,13 @@ export function DatabaseExplorer() {
   });
 
   async function query(sqlStr: string): Promise<Row[]> {
-    const { promiser, dbId } = getDB();
-    const result = await promiser("exec", {
-      dbId,
-      sql: sqlStr,
-      returnValue: "resultRows",
-      rowMode: "object",
-    });
-    return result.result.resultRows as Row[];
+    // Use the sql template tag with the full query as the first string segment
+    const strings = Object.assign([sqlStr], { raw: [sqlStr] }) as unknown as TemplateStringsArray;
+    const result = await sql<Row>(strings);
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+    return result.data;
   }
 
   async function loadTables() {

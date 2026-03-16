@@ -1,4 +1,5 @@
 import { sql } from "../lib/sqlite/sqlite";
+import { ok, type AsyncResult } from "../lib/result";
 
 export interface FeedEntry {
   entryId: string;
@@ -23,8 +24,8 @@ export interface Feed {
   entries: FeedEntry[];
 }
 
-export async function upsertFeed(feed: Feed): Promise<number> {
-  await sql`INSERT INTO feeds (title, description, link, author, published, image)
+export async function upsertFeed(feed: Feed): AsyncResult<number> {
+  const insertResult = await sql`INSERT INTO feeds (title, description, link, author, published, image)
     VALUES (${feed.title}, ${feed.description}, ${feed.link}, ${feed.author}, ${feed.published}, ${feed.image ?? null})
     ON CONFLICT(link) DO UPDATE SET
       title = excluded.title,
@@ -32,21 +33,23 @@ export async function upsertFeed(feed: Feed): Promise<number> {
       author = excluded.author,
       published = excluded.published,
       image = excluded.image`;
+  if (insertResult.error) return insertResult;
 
-  const rows = await sql<{
-    id: number;
-  }>`SELECT id FROM feeds WHERE link = ${feed.link}`;
-  const feedId = rows[0].id;
+  const idResult = await sql<{ id: number }>`SELECT id FROM feeds WHERE link = ${feed.link}`;
+  if (idResult.error) return idResult;
+
+  const feedId = idResult.data[0].id;
 
   for (const entry of feed.entries) {
-    await upsertEntry(feedId, entry);
+    const entryResult = await upsertEntry(feedId, entry);
+    if (entryResult.error) return entryResult;
   }
 
-  return feedId;
+  return ok(feedId);
 }
 
-async function upsertEntry(feedId: number, entry: FeedEntry): Promise<void> {
-  await sql`
+async function upsertEntry(feedId: number, entry: FeedEntry): AsyncResult<void> {
+  const result = await sql`
     INSERT INTO entries (feedId, entryId, title, link, author, published, updated, description, thumbnail, content)
          VALUES (${feedId}, ${entry.entryId}, ${entry.title}, ${entry.link}, ${entry.author}, ${entry.published}, ${entry.updated ?? null}, ${entry.description}, ${entry.thumbnail ?? null}, ${entry.content ?? null})
              ON CONFLICT(feedId, entryId) DO UPDATE SET
@@ -58,6 +61,9 @@ async function upsertEntry(feedId: number, entry: FeedEntry): Promise<void> {
       description = excluded.description,
       thumbnail = excluded.thumbnail,
       content = excluded.content`;
+  if (result.error) return result;
+
+  return ok(undefined);
 }
 
 interface FeedRow {
@@ -82,53 +88,81 @@ interface EntryRow {
   content: string | null;
 }
 
-export async function readAllFeeds(): Promise<Feed[]> {
-  const feedRows = await sql<FeedRow>`
-      SELECT * 
-        FROM feeds 
+function toFeedEntry(e: EntryRow): FeedEntry {
+  return {
+    entryId: e.entryId,
+    title: e.title,
+    link: e.link,
+    author: e.author,
+    published: e.published,
+    updated: e.updated ?? undefined,
+    description: e.description,
+    thumbnail: e.thumbnail ?? undefined,
+    content: e.content ?? undefined,
+  };
+}
+
+function toFeed(row: FeedRow, entryRows: EntryRow[]): Feed {
+  return {
+    title: row.title,
+    description: row.description,
+    link: row.link,
+    author: row.author,
+    published: row.published,
+    image: row.image ?? undefined,
+    entries: entryRows.map(toFeedEntry),
+  };
+}
+
+export async function readAllFeeds(): AsyncResult<Feed[]> {
+  const feedResult = await sql<FeedRow>`
+      SELECT *
+        FROM feeds
     ORDER BY id
   `;
+  if (feedResult.error) return feedResult;
 
   const feeds: Feed[] = [];
 
-  for (const row of feedRows) {
-    const entryRows = await sql<EntryRow>`
-        SELECT * 
-          FROM entries 
-         WHERE feedId = ${row.id} 
+  for (const row of feedResult.data) {
+    const entryResult = await sql<EntryRow>`
+        SELECT *
+          FROM entries
+         WHERE feedId = ${row.id}
       ORDER BY published DESC
     `;
+    if (entryResult.error) return entryResult;
 
-    const entries: FeedEntry[] = entryRows.map((e) => ({
-      entryId: e.entryId,
-      title: e.title,
-      link: e.link,
-      author: e.author,
-      published: e.published,
-      updated: e.updated ?? undefined,
-      description: e.description,
-      thumbnail: e.thumbnail ?? undefined,
-      content: e.content ?? undefined,
-    }));
-
-    feeds.push({
-      title: row.title,
-      description: row.description,
-      link: row.link,
-      author: row.author,
-      published: row.published,
-      image: row.image ?? undefined,
-      entries,
-    });
+    feeds.push(toFeed(row, entryResult.data));
   }
 
-  return feeds;
+  return ok(feeds);
 }
 
-export async function deleteFeed(feedId: number): Promise<void> {
-  await sql`
-    DELETE 
-      FROM feeds 
+export async function readFeedByLink(link: string): AsyncResult<Feed | null> {
+  const feedResult = await sql<FeedRow>`SELECT * FROM feeds WHERE link = ${link}`;
+  if (feedResult.error) return feedResult;
+  if (feedResult.data.length === 0) return ok(null);
+
+  const row = feedResult.data[0];
+  const entryResult = await sql<EntryRow>`
+      SELECT *
+        FROM entries
+       WHERE feedId = ${row.id}
+    ORDER BY published DESC
+  `;
+  if (entryResult.error) return entryResult;
+
+  return ok(toFeed(row, entryResult.data));
+}
+
+export async function deleteFeed(feedId: number): AsyncResult<void> {
+  const result = await sql`
+    DELETE
+      FROM feeds
      WHERE id = ${feedId}
   `;
+  if (result.error) return result;
+
+  return ok(undefined);
 }

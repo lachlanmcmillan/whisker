@@ -15,9 +15,9 @@ export function CachedThumbnail(props: CachedThumbnailProps) {
   const [useFallback, setUseFallback] = createSignal(false);
 
   onMount(async () => {
-    const cached = await readCachedThumbnail(props.url);
-    if (cached) {
-      setSrc(`data:${cached.contentType};base64,${cached.data}`);
+    const cachedResult = await readCachedThumbnail(props.url);
+    if (cachedResult.data) {
+      setSrc(`data:${cachedResult.data.contentType};base64,${cachedResult.data.data}`);
       return;
     }
 

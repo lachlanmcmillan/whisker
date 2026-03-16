@@ -6,7 +6,6 @@ import { Title } from "./components/Title";
 import { AddFeedPopover } from "./components/AddFeedPopover";
 import { DatabaseExplorer } from "./DatabaseExplorer";
 import { readAllFeeds } from "./models/feed.model";
-import { addNewFeed } from "./lib/feed/addNewFeed";
 import styles from "./App.module.css";
 
 function App() {
@@ -15,21 +14,23 @@ function App() {
   const [loading, setLoading] = createSignal(true);
   const [view, setView] = createSignal<"feeds" | "explorer">("feeds");
 
-  const handleAddFeed = async (url: string) => {
-    await addNewFeed(url);
-    const updated = await readAllFeeds();
-    setFeeds(updated);
-    setActiveIndex(updated.length - 1);
+  const refreshFeeds = async () => {
+    const result = await readAllFeeds();
+    if (result.data) {
+      setFeeds(result.data);
+    }
+    return result;
+  };
+
+  const handleFeedAdded = async () => {
+    const result = await refreshFeeds();
+    if (result.data) {
+      setActiveIndex(result.data.length - 1);
+    }
   };
 
   onMount(async () => {
-    let loaded = await readAllFeeds();
-
-    if (loaded.length === 0) {
-      loaded = await readAllFeeds();
-    }
-
-    setFeeds(loaded);
+    await refreshFeeds();
     setLoading(false);
   });
 
@@ -65,7 +66,7 @@ function App() {
                     </Button>
                   )}
                 </For>
-                <AddFeedPopover onAdd={handleAddFeed} />
+                <AddFeedPopover onAdded={handleFeedAdded} />
                 <Button onClick={() => setView("explorer")}>DB Explorer</Button>
               </nav>
 

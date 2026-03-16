@@ -15,6 +15,12 @@
   border-color: #646cff;
 }
 
+.error {
+  color: #e53e3e;
+  font-size: 0.85rem;
+  margin: 0.5rem 0 0;
+}
+
 .actions {
   display: flex;
   gap: 0.5rem;

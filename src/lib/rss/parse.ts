@@ -1,13 +1,23 @@
 import { XMLParser } from "fast-xml-parser";
 import type { Feed, FeedEntry } from "../../models/feed.model";
+import { ok, err, type Result } from "../result";
 
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
 });
 
-export function parseRssFeed(xml: string): Feed {
-  const doc = parser.parse(xml);
+export function parseRssFeed(xml: string): Result<Feed> {
+  let doc: any;
+  try {
+    doc = parser.parse(xml);
+  } catch (e) {
+    return err("parse_failed", "Failed to parse RSS XML", {
+      cause: e instanceof Error ? e.message : String(e),
+      xmlSnippet: xml.slice(0, 500),
+    });
+  }
+
   const channel = doc.rss.channel;
 
   const rawItems = Array.isArray(channel.item)
@@ -16,7 +26,7 @@ export function parseRssFeed(xml: string): Feed {
       ? [channel.item]
       : [];
 
-  return {
+  return ok({
     title: channel.title,
     description: channel.description ?? "",
     link: channel.link ?? "",
@@ -24,7 +34,7 @@ export function parseRssFeed(xml: string): Feed {
     published: channel.lastBuildDate ?? channel.pubDate ?? "",
     image: channel.image?.url,
     entries: rawItems.map(parseItem),
-  };
+  });
 }
 
 function parseItem(raw: any): FeedEntry {

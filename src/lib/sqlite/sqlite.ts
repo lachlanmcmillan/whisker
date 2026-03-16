@@ -1,5 +1,6 @@
 import { sqlite3Worker1Promiser, type SQLitePromiser } from '@sqlite.org/sqlite-wasm';
 import { MAX_MIGRATION, migrations } from './migrations';
+import { ok, err, type Result, type AsyncResult } from '../result';
 
 interface DB {
   promiser: SQLitePromiser;
@@ -64,11 +65,11 @@ export async function initDB(): Promise<void> {
   };
 }
 
-export function getDB(): DB {
+function getDB(): Result<DB> {
   if (!db) {
-    throw new Error('Database not initialized. Call initDB() first.');
+    return err('db_not_initialized', 'Database not initialized. Call initDB() first.');
   }
-  return db;
+  return ok(db);
 }
 
 type SqlValue = string | number | null | Uint8Array;
@@ -76,19 +77,29 @@ type SqlValue = string | number | null | Uint8Array;
 export async function sql<T = Record<string, SqlValue>>(
   strings: TemplateStringsArray,
   ...values: SqlValue[]
-): Promise<T[]> {
-  const { promiser, dbId } = getDB();
+): AsyncResult<T[]> {
+  const dbResult = getDB();
+  if (dbResult.error) return dbResult;
 
+  const { promiser, dbId } = dbResult.data;
   const query = strings.join('?');
   const bind = values.length > 0 ? values : undefined;
 
-  const result = await promiser('exec', {
-    dbId,
-    sql: query,
-    bind,
-    returnValue: 'resultRows',
-    rowMode: 'object',
-  });
+  try {
+    const result = await promiser('exec', {
+      dbId,
+      sql: query,
+      bind,
+      returnValue: 'resultRows',
+      rowMode: 'object',
+    });
 
-  return result.result.resultRows as T[];
+    return ok(result.result.resultRows as T[]);
+  } catch (e) {
+    return err('db_query_failed', `Query failed: ${query}`, {
+      cause: e instanceof Error ? e.message : String(e),
+      query,
+      bind,
+    });
+  }
 }

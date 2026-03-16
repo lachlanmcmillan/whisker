@@ -1,15 +1,40 @@
 import type { Feed } from "../../models/feed.model";
-import { upsertFeed } from "../../models/feed.model";
+import { upsertFeed, readFeedByLink } from "../../models/feed.model";
 import { parseAtomFeed } from "../atom/parse";
 import { parseRssFeed } from "../rss/parse";
+import { ok, err, type Result, type AsyncResult } from "../result";
 
-async function fetchText(url: string): Promise<string> {
+async function fetchText(url: string): AsyncResult<string> {
   const proxiedUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
-  const response = await fetch(proxiedUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+
+  let response: Response;
+  try {
+    response = await fetch(proxiedUrl);
+  } catch (e) {
+    return err("fetch_failed", `Network error fetching ${url}`, {
+      url,
+      proxiedUrl,
+      cause: e instanceof Error ? e.message : String(e),
+    });
   }
-  return response.text();
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => null);
+    return err(
+      "fetch_failed",
+      `HTTP ${response.status} ${response.statusText} for ${url}`,
+      {
+        url,
+        proxiedUrl,
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        body,
+      }
+    );
+  }
+
+  return ok(await response.text());
 }
 
 function discoverFeedUrl(html: string, baseUrl: string): string | null {
@@ -24,43 +49,79 @@ function discoverFeedUrl(html: string, baseUrl: string): string | null {
   return new URL(href, baseUrl).href;
 }
 
-function parseFeed(xml: string): Feed {
+function parseFeed(xml: string): Result<Feed> {
   if (/<feed[\s>]/i.test(xml)) {
     return parseAtomFeed(xml);
   } else if (/<rss[\s>]/i.test(xml)) {
     return parseRssFeed(xml);
   }
-  throw new Error("Unrecognized feed format: expected Atom or RSS");
+  return err(
+    "feed_not_found",
+    "Unrecognized feed format: expected Atom or RSS",
+    {
+      xmlSnippet: xml.slice(0, 500),
+    }
+  );
 }
 
-export async function addNewFeed(url: string): Promise<Feed> {
+export async function addNewFeed(url: string): AsyncResult<Feed> {
   console.log("[addNewFeed] fetching", url);
-  const text = await fetchText(url);
-  console.log("[addNewFeed] received %d bytes", text.length);
+  const textResult = await fetchText(url);
+  if (textResult.error) return textResult;
+  console.log("[addNewFeed] received %d bytes", textResult.data.length);
 
   let feed: Feed;
-  try {
-    feed = parseFeed(text);
-    console.log("[addNewFeed] parsed as direct feed:", feed.title);
-  } catch {
+  const parseResult = parseFeed(textResult.data);
+  if (parseResult.error) {
     console.log("[addNewFeed] not a feed, discovering feed link in HTML...");
-    const feedUrl = discoverFeedUrl(text, url);
+    const feedUrl = discoverFeedUrl(textResult.data, url);
     if (!feedUrl) {
-      throw new Error("No RSS or Atom feed found at this URL");
+      return err("feed_not_found", "No RSS or Atom feed link found in HTML", {
+        url,
+        htmlSnippet: textResult.data.slice(0, 500),
+      });
     }
     console.log("[addNewFeed] discovered feed URL:", feedUrl);
-    const feedText = await fetchText(feedUrl);
-    console.log("[addNewFeed] fetched feed, %d bytes", feedText.length);
-    feed = parseFeed(feedText);
+
+    const feedTextResult = await fetchText(feedUrl);
+    if (feedTextResult.error) return feedTextResult;
+    console.log(
+      "[addNewFeed] fetched feed, %d bytes",
+      feedTextResult.data.length
+    );
+
+    const discoveredParseResult = parseFeed(feedTextResult.data);
+    if (discoveredParseResult.error) return discoveredParseResult;
+
+    feed = discoveredParseResult.data;
     console.log("[addNewFeed] parsed discovered feed:", feed.title);
+  } else {
+    feed = parseResult.data;
+    console.log("[addNewFeed] parsed as direct feed:", feed.title);
   }
 
   if (!feed.link) {
     feed.link = url;
   }
 
-  console.log("[addNewFeed] upserting feed '%s' with %d entries", feed.title, feed.entries.length);
-  await upsertFeed(feed);
+  const existingResult = await readFeedByLink(feed.link);
+  if (existingResult.error) return existingResult;
+  if (existingResult.data) {
+    console.log("[addNewFeed] feed already exists:", existingResult.data.title);
+    return err(
+      "feed_already_exists",
+      `This feed "${existingResult.data.title}" already exists`,
+      { url, feedLink: feed.link, existingTitle: existingResult.data.title }
+    );
+  }
 
-  return feed;
+  console.log(
+    "[addNewFeed] upserting feed '%s' with %d entries",
+    feed.title,
+    feed.entries.length
+  );
+  const upsertResult = await upsertFeed(feed);
+  if (upsertResult.error) return upsertResult;
+
+  return ok(feed);
 }
