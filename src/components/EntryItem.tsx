@@ -1,18 +1,31 @@
 import { createSignal, Show } from "solid-js";
 import DOMPurify from "dompurify";
 import type { FeedEntry } from "../models/feed.model";
-import { markEntryOpened } from "../models/feed.model";
+import { markEntryOpened, clearEntryOpened } from "../models/feed.model";
 import { Button } from "./Button";
 import { CachedThumbnail } from "./CachedThumbnail";
+import { CheckButton } from "./CheckButton";
 import { Link } from "./Link";
 import { Title } from "./Title";
 import styles from "./entryItem.module.css";
 
-export function EntryItem(props: { entry: FeedEntry }) {
+export function EntryItem(props: { entry: FeedEntry; onToggleRead?: () => void }) {
   const [expanded, setExpanded] = createSignal(false);
 
   return (
     <li class={styles.entry}>
+      <CheckButton
+        checked={!!props.entry.openedAt}
+        onClick={async () => {
+          if (!props.entry.feedId) return;
+          if (props.entry.openedAt) {
+            await clearEntryOpened(props.entry.feedId, props.entry.entryId);
+          } else {
+            await markEntryOpened(props.entry.feedId, props.entry.entryId);
+          }
+          props.onToggleRead?.();
+        }}
+      />
       <Show when={props.entry.thumbnail}>
         <Link
           href={props.entry.link}

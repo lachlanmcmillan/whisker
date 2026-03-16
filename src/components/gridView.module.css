@@ -11,6 +11,7 @@
   flex-direction: column;
   padding: 0.5rem;
   border-radius: 10px;
+  position: relative;
 
   &[data-opened-at] {
     transform: grayscale(100%);
@@ -19,7 +20,10 @@
       transform: grayscale(0%);
       opacity: 1;
     }
+  }
 
+  &:hover > button {
+    opacity: 1;
   }
 }
 

@@ -5,6 +5,11 @@
   text-align: left;
   display: flex;
   gap: 1rem;
+  position: relative;
+
+  &:hover > button {
+    opacity: 1;
+  }
 }
 
 .entry img {

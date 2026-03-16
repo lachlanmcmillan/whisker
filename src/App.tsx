@@ -139,7 +139,7 @@ function App() {
 
                     <ul class={styles.entries}>
                       <For each={feed().entries}>
-                        {(entry) => <EntryItem entry={entry} />}
+                        {(entry) => <EntryItem entry={entry} onToggleRead={refreshFeeds} />}
                       </For>
                     </ul>
                   </>
@@ -147,7 +147,7 @@ function App() {
               </Show>
             }
           >
-            <GridView feeds={feeds()} />
+            <GridView feeds={feeds()} onToggleRead={refreshFeeds} />
           </Show>
         </div>
       </Show>

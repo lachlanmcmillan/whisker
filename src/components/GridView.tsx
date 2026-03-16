@@ -1,7 +1,8 @@
 import { Show, For } from "solid-js";
 import type { Feed, FeedEntry } from "../models/feed.model";
-import { markEntryOpened } from "../models/feed.model";
+import { markEntryOpened, clearEntryOpened } from "../models/feed.model";
 import { CachedThumbnail } from "./CachedThumbnail";
+import { CheckButton } from "./CheckButton";
 import { timeAgo } from "../lib/timeAgo";
 import styles from "./gridView.module.css";
 
@@ -25,7 +26,7 @@ function flattenAndSort(feeds: Feed[]): GridEntry[] {
   return items;
 }
 
-export function GridView(props: { feeds: Feed[] }) {
+export function GridView(props: { feeds: Feed[]; onToggleRead?: () => void }) {
   const items = () => flattenAndSort(props.feeds);
 
   return (
@@ -33,6 +34,18 @@ export function GridView(props: { feeds: Feed[] }) {
       <For each={items()}>
         {(item) => (
           <li class={styles.item} data-entry-id={item.entry.entryId} data-opened-at={item.entry.openedAt}>
+            <CheckButton
+              checked={!!item.entry.openedAt}
+              onClick={async () => {
+                if (!item.entry.feedId) return;
+                if (item.entry.openedAt) {
+                  await clearEntryOpened(item.entry.feedId, item.entry.entryId);
+                } else {
+                  await markEntryOpened(item.entry.feedId, item.entry.entryId);
+                }
+                props.onToggleRead?.();
+              }}
+            />
             <a
               href={item.entry.link}
               target="_blank"

@@ -191,3 +191,15 @@ export async function markEntryOpened(feedId: number, entryId: string): AsyncRes
 
   return ok(undefined);
 }
+
+export async function clearEntryOpened(feedId: number, entryId: string): AsyncResult<void> {
+  const result = await sql`
+    UPDATE entries
+       SET openedAt = ${null}
+     WHERE feedId = ${feedId}
+       AND entryId = ${entryId}
+  `;
+  if (result.error) return result;
+
+  return ok(undefined);
+}
