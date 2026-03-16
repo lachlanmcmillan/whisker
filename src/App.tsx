@@ -5,16 +5,20 @@ import { Button } from "./components/Button";
 import { Title } from "./components/Title";
 import { AddFeedPopover } from "./components/AddFeedPopover";
 import { DatabaseExplorer } from "./DatabaseExplorer";
+import { GridView } from "./components/GridView";
 import { readAllFeeds } from "./models/feed.model";
 import { refreshFeed } from "./lib/feed/addNewFeed";
 import styles from "./App.module.css";
+import { appSettingsStore } from "./stores/settings.store";
 
 function App() {
   const [feeds, setFeeds] = createSignal<Feed[]>([]);
   const [activeIndex, setActiveIndex] = createSignal(0);
   const [loading, setLoading] = createSignal(true);
   const [refreshing, setRefreshing] = createSignal(false);
+  const [refreshError, setRefreshError] = createSignal<string | null>(null);
   const [view, setView] = createSignal<"feeds" | "explorer">("feeds");
+  const [appSettings, setAppSettings] = appSettingsStore;
 
   const refreshFeeds = async () => {
     const result = await readAllFeeds();
@@ -33,14 +37,20 @@ function App() {
 
   const handleRefresh = async () => {
     const feed = feeds()[activeIndex()];
-    if (!feed?.feedUrl) return;
+    const url = feed?.feedUrl || feed?.link;
+    if (!url) {
+      setRefreshError("No feed URL available. Try removing and re-adding this feed.");
+      return;
+    }
 
+    setRefreshError(null);
     setRefreshing(true);
-    const result = await refreshFeed(feed.feedUrl);
+    const result = await refreshFeed(url);
     setRefreshing(false);
 
     if (result.error) {
       console.error("[handleRefresh]", result.error);
+      setRefreshError(result.error.message);
       return;
     }
 
@@ -70,49 +80,76 @@ function App() {
           </div>
         }
       >
-        <Show when={feeds()[activeIndex()]}>
-          {(feed) => (
-            <div class={styles.feed}>
-              <nav class={styles.tabs}>
-                <For each={feeds()}>
-                  {(f, i) => (
-                    <Button
-                      active={i() === activeIndex()}
-                      onClick={() => setActiveIndex(i())}
-                    >
-                      {f.title}
-                    </Button>
-                  )}
-                </For>
-                <AddFeedPopover onAdded={handleFeedAdded} />
-                <Button onClick={() => setView("explorer")}>DB Explorer</Button>
-              </nav>
+        <div class={styles.feed}>
+          <nav class={styles.tabs}>
+            <Button
+              active={appSettings.layout === "List"}
+              onClick={() => setAppSettings('layout', "List")}
+            >
+              List
+            </Button>
+            <Button
+              active={appSettings.layout === "Grid"}
+              onClick={() => setAppSettings('layout', "Grid")}
+            >
+              Grid
+            </Button>
+            <AddFeedPopover onAdded={handleFeedAdded} />
+            <Button onClick={() => setView("explorer")}>DB Explorer</Button>
+          </nav>
 
-              <div class={styles.feedHeader}>
-                <Title>{feed().title}</Title>
-                <p>
-                  by {feed().author} —{" "}
-                  {new Date(feed().published).toLocaleDateString()}
-                </p>
-                <Show when={feed().description}>
-                  <p>{feed().description}</p>
-                </Show>
-                <Button
-                  onClick={handleRefresh}
-                  disabled={refreshing() || !feed().feedUrl}
-                >
-                  {refreshing() ? "Refreshing..." : "Refresh"}
-                </Button>
-              </div>
+          <Show
+            when={appSettings.layout === "Grid"}
+            fallback={
+              <Show when={feeds()[activeIndex()]}>
+                {(feed) => (
+                  <>
+                    <nav class={styles.feedTabs}>
+                      <For each={feeds()}>
+                        {(f, i) => (
+                          <Button
+                            active={i() === activeIndex()}
+                            onClick={() => { setActiveIndex(i()); setRefreshError(null); }}
+                          >
+                            {f.title}
+                          </Button>
+                        )}
+                      </For>
+                    </nav>
 
-              <ul class={styles.entries}>
-                <For each={feed().entries}>
-                  {(entry) => <EntryItem entry={entry} />}
-                </For>
-              </ul>
-            </div>
-          )}
-        </Show>
+                    <div class={styles.feedHeader}>
+                      <Title>{feed().title}</Title>
+                      <p>
+                        by {feed().author} —{" "}
+                        {new Date(feed().published).toLocaleDateString()}
+                      </p>
+                      <Show when={feed().description}>
+                        <p>{feed().description}</p>
+                      </Show>
+                      <Button
+                        onClick={handleRefresh}
+                        disabled={refreshing()}
+                      >
+                        {refreshing() ? "Refreshing..." : "Refresh"}
+                      </Button>
+                      <Show when={refreshError()}>
+                        <p class={styles.error}>{refreshError()}</p>
+                      </Show>
+                    </div>
+
+                    <ul class={styles.entries}>
+                      <For each={feed().entries}>
+                        {(entry) => <EntryItem entry={entry} />}
+                      </For>
+                    </ul>
+                  </>
+                )}
+              </Show>
+            }
+          >
+            <GridView feeds={feeds()} />
+          </Show>
+        </div>
       </Show>
     </Show>
   );

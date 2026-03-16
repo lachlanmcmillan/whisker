@@ -1,5 +1,5 @@
 .feed {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
 }
@@ -10,12 +10,24 @@
   margin-bottom: 1.5rem;
 }
 
+.feedTabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
 .feedHeader {
   margin-bottom: 2rem;
 }
 
 .feedHeader p {
   color: #888;
+}
+
+.error {
+  color: #e55;
+  margin-top: 0.5rem;
 }
 
 .entries {

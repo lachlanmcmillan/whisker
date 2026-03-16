@@ -8,6 +8,7 @@ interface CachedThumbnailProps {
   url: string;
   width?: number;
   alt?: string;
+  class?: string;
 }
 
 export function CachedThumbnail(props: CachedThumbnailProps) {
@@ -47,10 +48,10 @@ export function CachedThumbnail(props: CachedThumbnailProps) {
   return (
     <Show
       when={!useFallback()}
-      fallback={<img src={props.url} width={props.width} alt={props.alt} />}
+      fallback={<img src={props.url} width={props.width} alt={props.alt} class={props.class} />}
     >
       <Show when={src()}>
-        <img src={src()!} width={props.width} alt={props.alt} />
+        <img src={src()!} width={props.width} alt={props.alt} class={props.class} />
       </Show>
     </Show>
   );
