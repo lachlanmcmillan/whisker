@@ -3,7 +3,7 @@ export interface Migration {
   sql: string;
 }
 
-export const MAX_MIGRATION = 5;
+export const MAX_MIGRATION = 6;
 
 export const migrations: Migration[] = [
   {
@@ -86,6 +86,13 @@ export const migrations: Migration[] = [
         fetchedAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
         lastAccessedAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
       );
+    `,
+  },
+  {
+    version: 6,
+    sql: `
+      ALTER TABLE feeds ADD COLUMN feedUrl TEXT NOT NULL DEFAULT '';
+      ALTER TABLE feeds ADD COLUMN fetchedAt TEXT;
     `,
   },
 ];

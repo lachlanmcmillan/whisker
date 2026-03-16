@@ -18,21 +18,25 @@ export interface Feed {
   title: string;
   description: string;
   link: string;
+  feedUrl: string;
   author: string;
   published: string;
   image?: string;
+  fetchedAt?: string;
   entries: FeedEntry[];
 }
 
 export async function upsertFeed(feed: Feed): AsyncResult<number> {
-  const insertResult = await sql`INSERT INTO feeds (title, description, link, author, published, image)
-    VALUES (${feed.title}, ${feed.description}, ${feed.link}, ${feed.author}, ${feed.published}, ${feed.image ?? null})
+  const insertResult = await sql`INSERT INTO feeds (title, description, link, feedUrl, author, published, image, fetchedAt)
+    VALUES (${feed.title}, ${feed.description}, ${feed.link}, ${feed.feedUrl}, ${feed.author}, ${feed.published}, ${feed.image ?? null}, ${feed.fetchedAt ?? null})
     ON CONFLICT(link) DO UPDATE SET
       title = excluded.title,
       description = excluded.description,
+      feedUrl = excluded.feedUrl,
       author = excluded.author,
       published = excluded.published,
-      image = excluded.image`;
+      image = excluded.image,
+      fetchedAt = excluded.fetchedAt`;
   if (insertResult.error) return insertResult;
 
   const idResult = await sql<{ id: number }>`SELECT id FROM feeds WHERE link = ${feed.link}`;
@@ -71,9 +75,11 @@ interface FeedRow {
   title: string;
   description: string;
   link: string;
+  feedUrl: string;
   author: string;
   published: string;
   image: string | null;
+  fetchedAt: string | null;
 }
 
 interface EntryRow {
@@ -107,9 +113,11 @@ function toFeed(row: FeedRow, entryRows: EntryRow[]): Feed {
     title: row.title,
     description: row.description,
     link: row.link,
+    feedUrl: row.feedUrl,
     author: row.author,
     published: row.published,
     image: row.image ?? undefined,
+    fetchedAt: row.fetchedAt ?? undefined,
     entries: entryRows.map(toFeedEntry),
   };
 }
