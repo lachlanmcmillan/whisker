@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { createSignal, onMount, Show } from "solid-js";
 import {
   readCachedThumbnail,
   writeCachedThumbnail,
@@ -10,51 +10,48 @@ interface CachedThumbnailProps {
   alt?: string;
 }
 
-export function CachedThumbnail({ url, width, alt }: CachedThumbnailProps) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [useFallback, setUseFallback] = useState(false);
+export function CachedThumbnail(props: CachedThumbnailProps) {
+  const [src, setSrc] = createSignal<string | null>(null);
+  const [useFallback, setUseFallback] = createSignal(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  onMount(async () => {
+    const cached = await readCachedThumbnail(props.url);
+    if (cached) {
+      setSrc(`data:${cached.contentType};base64,${cached.data}`);
+      return;
+    }
 
-    (async () => {
-      const cached = await readCachedThumbnail(url);
-      if (cached) {
-        if (!cancelled) setSrc(`data:${cached.contentType};base64,${cached.data}`);
+    try {
+      const res = await fetch(props.url);
+      if (!res.ok) {
+        setUseFallback(true);
         return;
       }
 
-      try {
-        const res = await fetch(url);
-        if (!res.ok) {
-          if (!cancelled) setUseFallback(true);
-          return;
-        }
+      const contentType = res.headers.get("Content-Type") ?? "image/jpeg";
+      const buffer = await res.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(buffer).reduce(
+          (acc, byte) => acc + String.fromCharCode(byte),
+          ""
+        )
+      );
 
-        const contentType = res.headers.get("Content-Type") ?? "image/jpeg";
-        const buffer = await res.arrayBuffer();
-        const base64 = btoa(
-          new Uint8Array(buffer).reduce(
-            (acc, byte) => acc + String.fromCharCode(byte),
-            ""
-          )
-        );
+      await writeCachedThumbnail(props.url, base64, contentType);
+      setSrc(`data:${contentType};base64,${base64}`);
+    } catch {
+      setUseFallback(true);
+    }
+  });
 
-        await writeCachedThumbnail(url, base64, contentType);
-        if (!cancelled) setSrc(`data:${contentType};base64,${base64}`);
-      } catch {
-        // CORS or network error — fall back to direct <img> load
-        if (!cancelled) setUseFallback(true);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [url]);
-
-  if (useFallback) return <img src={url} width={width} alt={alt} />;
-  if (!src) return null;
-
-  return <img src={src} width={width} alt={alt} />;
+  return (
+    <Show
+      when={!useFallback()}
+      fallback={<img src={props.url} width={props.width} alt={props.alt} />}
+    >
+      <Show when={src()}>
+        <img src={src()!} width={props.width} alt={props.alt} />
+      </Show>
+    </Show>
+  );
 }

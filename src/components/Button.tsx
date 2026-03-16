@@ -1,24 +1,32 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { JSX } from "solid-js";
+import { splitProps } from "solid-js";
 import styles from "./button.module.css";
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends JSX.ButtonHTMLAttributes<HTMLButtonElement> {
   active?: boolean;
   variant?: "default" | "ghost";
 }
 
-export function Button({
-  active,
-  variant = "default",
-  className,
-  ...props
-}: ButtonProps) {
-  const classes = [
-    variant === "ghost" ? styles.ghost : styles.button,
-    active ? styles.active : "",
-    className ?? "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+export function Button(props: ButtonProps) {
+  const [local, rest] = splitProps(props, [
+    "active",
+    "variant",
+    "class",
+    "children",
+  ]);
 
-  return <button className={classes} {...props} />;
+  const classes = () =>
+    [
+      (local.variant ?? "default") === "ghost" ? styles.ghost : styles.button,
+      local.active ? styles.active : "",
+      local.class ?? "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+  return (
+    <button class={classes()} {...rest}>
+      {local.children}
+    </button>
+  );
 }

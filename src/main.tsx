@@ -1,13 +1,8 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
-import { initDB } from './lib/sqlite/sqlite'
+import { render } from "solid-js/web";
+import "./index.css";
+import App from "./App.tsx";
+import { initDB } from "./lib/sqlite/sqlite";
 
 initDB().then(() => {
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  )
-})
+  render(() => <App />, document.getElementById("root")!);
+});

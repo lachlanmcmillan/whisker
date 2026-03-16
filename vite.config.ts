@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import solidPlugin from 'vite-plugin-solid'
 
 const crossOriginHeaders = {
   'Cross-Origin-Opener-Policy': 'same-origin',
@@ -14,11 +14,5 @@ export default defineConfig({
   preview: {
     headers: crossOriginHeaders,
   },
-  plugins: [
-    react({
-      babel: {
-        plugins: [['babel-plugin-react-compiler']],
-      },
-    }),
-  ],
+  plugins: [solidPlugin()],
 })

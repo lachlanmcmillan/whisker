@@ -1,9 +1,18 @@
-import type { AnchorHTMLAttributes } from "react";
+import type { JSX } from "solid-js";
+import { splitProps } from "solid-js";
 import styles from "./link.module.css";
 
-interface LinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {}
+type LinkProps = JSX.AnchorHTMLAttributes<HTMLAnchorElement>;
 
-export function Link({ className, ...props }: LinkProps) {
-  const classes = [styles.link, className ?? ""].filter(Boolean).join(" ");
-  return <a className={classes} target="_blank" rel="noopener noreferrer" {...props} />;
+export function Link(props: LinkProps) {
+  const [local, rest] = splitProps(props, ["class", "children"]);
+
+  const classes = () =>
+    [styles.link, local.class ?? ""].filter(Boolean).join(" ");
+
+  return (
+    <a class={classes()} target="_blank" rel="noopener noreferrer" {...rest}>
+      {local.children}
+    </a>
+  );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { createSignal, onMount, Show, For } from "solid-js";
 import { getDB } from "./lib/sqlite/sqlite";
 import { Button } from "./components/Button";
 import { Title } from "./components/Title";
@@ -12,16 +12,16 @@ interface TableInfo {
 type Row = Record<string, unknown>;
 
 export function DatabaseExplorer() {
-  const [tables, setTables] = useState<TableInfo[]>([]);
-  const [selectedTable, setSelectedTable] = useState<string | null>(null);
-  const [rows, setRows] = useState<Row[]>([]);
-  const [sql, setSql] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isCustomQuery, setIsCustomQuery] = useState(false);
+  const [tables, setTables] = createSignal<TableInfo[]>([]);
+  const [selectedTable, setSelectedTable] = createSignal<string | null>(null);
+  const [rows, setRows] = createSignal<Row[]>([]);
+  const [sqlText, setSqlText] = createSignal("");
+  const [error, setError] = createSignal<string | null>(null);
+  const [isCustomQuery, setIsCustomQuery] = createSignal(false);
 
-  useEffect(() => {
+  onMount(() => {
     loadTables();
-  }, []);
+  });
 
   async function query(sqlStr: string): Promise<Row[]> {
     const { promiser, dbId } = getDB();
@@ -42,7 +42,9 @@ export function DatabaseExplorer() {
       const infos: TableInfo[] = [];
       for (const row of tableRows) {
         const name = row.name as string;
-        const countRows = await query(`SELECT COUNT(*) as count FROM "${name}"`);
+        const countRows = await query(
+          `SELECT COUNT(*) as count FROM "${name}"`
+        );
         infos.push({ name, count: countRows[0]?.count as number });
       }
       setTables(infos);
@@ -56,7 +58,7 @@ export function DatabaseExplorer() {
     setIsCustomQuery(false);
     setSelectedTable(name);
     const tableQuery = `SELECT * FROM "${name}" LIMIT 200`;
-    setSql(tableQuery);
+    setSqlText(tableQuery);
     try {
       const data = await query(tableQuery);
       setRows(data);
@@ -67,14 +69,13 @@ export function DatabaseExplorer() {
   }
 
   async function runSql() {
-    if (!sql.trim()) return;
+    if (!sqlText().trim()) return;
     setError(null);
     setIsCustomQuery(true);
     setSelectedTable(null);
     try {
-      const data = await query(sql);
+      const data = await query(sqlText());
       setRows(data);
-      // Refresh table list in case of DDL/DML
       loadTables();
     } catch (e) {
       setError(String(e));
@@ -82,60 +83,68 @@ export function DatabaseExplorer() {
     }
   }
 
-  const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+  const columns = () => (rows().length > 0 ? Object.keys(rows()[0]) : []);
 
   return (
-    <div className={styles.explorer}>
+    <div class={styles.explorer}>
       <Title>Database Explorer</Title>
 
-      <div className={styles.tables}>
-        {tables.map((t) => (
-          <Button
-            key={t.name}
-            active={selectedTable === t.name}
-            onClick={() => selectTable(t.name)}
-          >
-            {t.name}
-            <span className={styles.tableInfo}>({t.count})</span>
-          </Button>
-        ))}
+      <div class={styles.tables}>
+        <For each={tables()}>
+          {(t) => (
+            <Button
+              active={selectedTable() === t.name}
+              onClick={() => selectTable(t.name)}
+            >
+              {t.name}
+              <span class={styles.tableInfo}>({t.count})</span>
+            </Button>
+          )}
+        </For>
       </div>
 
-      {error && <p className={styles.error}>{error}</p>}
+      <Show when={error()}>
+        <p class={styles.error}>{error()}</p>
+      </Show>
 
-      {rows.length > 0 ? (
-        <table className={styles.dataTable}>
+      <Show
+        when={rows().length > 0}
+        fallback={
+          <>
+            <Show when={selectedTable() && !error()}>
+              <p class={styles.empty}>No rows in this table.</p>
+            </Show>
+            <Show when={isCustomQuery() && !error()}>
+              <p class={styles.empty}>Query returned no rows.</p>
+            </Show>
+          </>
+        }
+      >
+        <table class={styles.dataTable}>
           <thead>
             <tr>
-              {columns.map((col) => (
-                <th key={col}>{col}</th>
-              ))}
+              <For each={columns()}>{(col) => <th>{col}</th>}</For>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
-              <tr key={i}>
-                {columns.map((col) => (
-                  <td key={col}>{String(row[col] ?? "")}</td>
-                ))}
-              </tr>
-            ))}
+            <For each={rows()}>
+              {(row) => (
+                <tr>
+                  <For each={columns()}>
+                    {(col) => <td>{String(row[col] ?? "")}</td>}
+                  </For>
+                </tr>
+              )}
+            </For>
           </tbody>
         </table>
-      ) : (
-        selectedTable &&
-        !error && <p className={styles.empty}>No rows in this table.</p>
-      )}
+      </Show>
 
-      {isCustomQuery && rows.length === 0 && !error && (
-        <p className={styles.empty}>Query returned no rows.</p>
-      )}
-
-      <div className={styles.sqlSection}>
+      <div class={styles.sqlSection}>
         <textarea
-          className={styles.sqlInput}
-          value={sql}
-          onChange={(e) => setSql(e.target.value)}
+          class={styles.sqlInput}
+          value={sqlText()}
+          onInput={(e) => setSqlText(e.currentTarget.value)}
           placeholder="Enter SQL query..."
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {

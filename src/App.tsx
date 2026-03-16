@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { createSignal, onMount, Show, For } from "solid-js";
 import { parseAtomFeed } from "./lib/atom/parse";
 import { parseRssFeed } from "./lib/rss/parse";
 import type { Feed } from "./models/feed.model";
@@ -12,75 +12,77 @@ import rssXml from "../substack-signull.xml?raw";
 import styles from "./App.module.css";
 
 function App() {
-  const [feeds, setFeeds] = useState<Feed[]>([]);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<"feeds" | "explorer">("feeds");
+  const [feeds, setFeeds] = createSignal<Feed[]>([]);
+  const [activeIndex, setActiveIndex] = createSignal(0);
+  const [loading, setLoading] = createSignal(true);
+  const [view, setView] = createSignal<"feeds" | "explorer">("feeds");
 
-  useEffect(() => {
-    (async () => {
-      let loaded = await readAllFeeds();
+  onMount(async () => {
+    let loaded = await readAllFeeds();
 
-      if (loaded.length === 0) {
-        await upsertFeed(parseAtomFeed(atomXml));
-        await upsertFeed(parseRssFeed(rssXml));
-        loaded = await readAllFeeds();
-      }
+    if (loaded.length === 0) {
+      await upsertFeed(parseAtomFeed(atomXml));
+      await upsertFeed(parseRssFeed(rssXml));
+      loaded = await readAllFeeds();
+    }
 
-      setFeeds(loaded);
-      setLoading(false);
-    })();
-  }, []);
-
-  if (loading) {
-    return <div className={styles.feed}>Loading feeds...</div>;
-  }
-
-  if (view === "explorer") {
-    return (
-      <div>
-        <div className={styles.feed}>
-          <nav className={styles.tabs}>
-            <Button onClick={() => setView("feeds")}>Back to Feeds</Button>
-          </nav>
-        </div>
-        <DatabaseExplorer />
-      </div>
-    );
-  }
-
-  const feed = feeds[activeIndex];
-  if (!feed) return null;
+    setFeeds(loaded);
+    setLoading(false);
+  });
 
   return (
-    <div className={styles.feed}>
-      <nav className={styles.tabs}>
-        {feeds.map((f, i) => (
-          <Button
-            key={f.link}
-            active={i === activeIndex}
-            onClick={() => setActiveIndex(i)}
-          >
-            {f.title}
-          </Button>
-        ))}
-        <Button onClick={() => setView("explorer")}>DB Explorer</Button>
-      </nav>
+    <Show when={!loading()} fallback={<div class={styles.feed}>Loading feeds...</div>}>
+      <Show
+        when={view() === "feeds"}
+        fallback={
+          <div>
+            <div class={styles.feed}>
+              <nav class={styles.tabs}>
+                <Button onClick={() => setView("feeds")}>Back to Feeds</Button>
+              </nav>
+            </div>
+            <DatabaseExplorer />
+          </div>
+        }
+      >
+        <Show when={feeds()[activeIndex()]}>
+          {(feed) => (
+            <div class={styles.feed}>
+              <nav class={styles.tabs}>
+                <For each={feeds()}>
+                  {(f, i) => (
+                    <Button
+                      active={i() === activeIndex()}
+                      onClick={() => setActiveIndex(i())}
+                    >
+                      {f.title}
+                    </Button>
+                  )}
+                </For>
+                <Button onClick={() => setView("explorer")}>DB Explorer</Button>
+              </nav>
 
-      <div className={styles.feedHeader}>
-        <Title>{feed.title}</Title>
-        <p>
-          by {feed.author} — {new Date(feed.published).toLocaleDateString()}
-        </p>
-        {feed.description && <p>{feed.description}</p>}
-      </div>
+              <div class={styles.feedHeader}>
+                <Title>{feed().title}</Title>
+                <p>
+                  by {feed().author} —{" "}
+                  {new Date(feed().published).toLocaleDateString()}
+                </p>
+                <Show when={feed().description}>
+                  <p>{feed().description}</p>
+                </Show>
+              </div>
 
-      <ul className={styles.entries}>
-        {feed.entries.map((entry) => (
-          <EntryItem key={entry.entryId} entry={entry} />
-        ))}
-      </ul>
-    </div>
+              <ul class={styles.entries}>
+                <For each={feed().entries}>
+                  {(entry) => <EntryItem entry={entry} />}
+                </For>
+              </ul>
+            </div>
+          )}
+        </Show>
+      </Show>
+    </Show>
   );
 }
 
