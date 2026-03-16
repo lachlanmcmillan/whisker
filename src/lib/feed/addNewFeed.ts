@@ -103,6 +103,7 @@ export async function addNewFeed(url: string): AsyncResult<Feed> {
   if (!feed.link) {
     feed.link = url;
   }
+  feed.feedUrl = url;
 
   const existingResult = await readFeedByLink(feed.link);
   if (existingResult.error) return existingResult;
@@ -115,8 +116,37 @@ export async function addNewFeed(url: string): AsyncResult<Feed> {
     );
   }
 
+  feed.fetchedAt = new Date().toISOString();
+
   console.log(
     "[addNewFeed] upserting feed '%s' with %d entries",
+    feed.title,
+    feed.entries.length
+  );
+  const upsertResult = await upsertFeed(feed);
+  if (upsertResult.error) return upsertResult;
+
+  return ok(feed);
+}
+
+export async function refreshFeed(feedUrl: string): AsyncResult<Feed> {
+  console.log("[refreshFeed] fetching", feedUrl);
+  const textResult = await fetchText(feedUrl);
+  if (textResult.error) return textResult;
+
+  const parseResult = parseFeed(textResult.data);
+  if (parseResult.error) return parseResult;
+
+  const feed = parseResult.data;
+  feed.feedUrl = feedUrl;
+  feed.fetchedAt = new Date().toISOString();
+
+  if (!feed.link) {
+    feed.link = feedUrl;
+  }
+
+  console.log(
+    "[refreshFeed] upserting feed '%s' with %d entries",
     feed.title,
     feed.entries.length
   );

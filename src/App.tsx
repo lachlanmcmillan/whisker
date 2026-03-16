@@ -6,12 +6,14 @@ import { Title } from "./components/Title";
 import { AddFeedPopover } from "./components/AddFeedPopover";
 import { DatabaseExplorer } from "./DatabaseExplorer";
 import { readAllFeeds } from "./models/feed.model";
+import { refreshFeed } from "./lib/feed/addNewFeed";
 import styles from "./App.module.css";
 
 function App() {
   const [feeds, setFeeds] = createSignal<Feed[]>([]);
   const [activeIndex, setActiveIndex] = createSignal(0);
   const [loading, setLoading] = createSignal(true);
+  const [refreshing, setRefreshing] = createSignal(false);
   const [view, setView] = createSignal<"feeds" | "explorer">("feeds");
 
   const refreshFeeds = async () => {
@@ -27,6 +29,22 @@ function App() {
     if (result.data) {
       setActiveIndex(result.data.length - 1);
     }
+  };
+
+  const handleRefresh = async () => {
+    const feed = feeds()[activeIndex()];
+    if (!feed?.feedUrl) return;
+
+    setRefreshing(true);
+    const result = await refreshFeed(feed.feedUrl);
+    setRefreshing(false);
+
+    if (result.error) {
+      console.error("[handleRefresh]", result.error);
+      return;
+    }
+
+    await refreshFeeds();
   };
 
   onMount(async () => {
@@ -79,6 +97,12 @@ function App() {
                 <Show when={feed().description}>
                   <p>{feed().description}</p>
                 </Show>
+                <Button
+                  onClick={handleRefresh}
+                  disabled={refreshing() || !feed().feedUrl}
+                >
+                  {refreshing() ? "Refreshing..." : "Refresh"}
+                </Button>
               </div>
 
               <ul class={styles.entries}>
