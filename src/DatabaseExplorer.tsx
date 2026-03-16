@@ -19,6 +19,8 @@ export function DatabaseExplorer() {
   const [sqlText, setSqlText] = createSignal("");
   const [error, setError] = createSignal<Err | null>(null);
   const [isCustomQuery, setIsCustomQuery] = createSignal(false);
+  const [sortColumn, setSortColumn] = createSignal<string | null>(null);
+  const [sortDir, setSortDir] = createSignal<"ASC" | "DESC">("ASC");
 
   onMount(() => {
     loadTables();
@@ -50,11 +52,36 @@ export function DatabaseExplorer() {
     setTables(infos);
   }
 
+  function buildTableQuery(name: string, col: string | null, dir: "ASC" | "DESC") {
+    let q = `SELECT * FROM "${name}"`;
+    if (col) q += ` ORDER BY "${col}" ${dir}`;
+    q += " LIMIT 200";
+    return q;
+  }
+
   async function selectTable(name: string) {
     setError(null);
     setIsCustomQuery(false);
     setSelectedTable(name);
-    const tableQuery = `SELECT * FROM "${name}" LIMIT 200`;
+    setSortColumn(null);
+    setSortDir("ASC");
+    const tableQuery = buildTableQuery(name, null, "ASC");
+    setSqlText(tableQuery);
+    const data = await query(tableQuery);
+    setRows(data);
+  }
+
+  async function sortByColumn(col: string) {
+    const table = selectedTable();
+    if (!table) return;
+    let dir: "ASC" | "DESC" = "ASC";
+    if (sortColumn() === col) {
+      dir = sortDir() === "ASC" ? "DESC" : "ASC";
+    }
+    setSortColumn(col);
+    setSortDir(dir);
+    setError(null);
+    const tableQuery = buildTableQuery(table, col, dir);
     setSqlText(tableQuery);
     const data = await query(tableQuery);
     setRows(data);
@@ -125,7 +152,19 @@ export function DatabaseExplorer() {
         <table class={styles.dataTable}>
           <thead>
             <tr>
-              <For each={columns()}>{(col) => <th>{col}</th>}</For>
+              <For each={columns()}>
+                {(col) => (
+                  <th
+                    class={selectedTable() ? styles.sortable : undefined}
+                    onClick={() => selectedTable() && sortByColumn(col)}
+                  >
+                    {col}
+                    <Show when={sortColumn() === col}>
+                      {sortDir() === "ASC" ? " \u25B2" : " \u25BC"}
+                    </Show>
+                  </th>
+                )}
+              </For>
             </tr>
           </thead>
           <tbody>

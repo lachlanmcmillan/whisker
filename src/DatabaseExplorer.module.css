@@ -45,6 +45,15 @@
   top: 0;
 }
 
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable:hover {
+  color: #ddd;
+}
+
 .dataTable tr:hover td {
   background: #1a1a2a;
 }
