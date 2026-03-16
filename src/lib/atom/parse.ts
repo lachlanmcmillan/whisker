@@ -34,10 +34,17 @@ export function parseAtomFeed(xml: string): Result<Feed> {
     title: feed.title,
     description: "",
     link: altLink,
+    feedUrl: "",
     author: feed.author?.name ?? "",
-    published: feed.published ?? "",
+    published: toISODate(feed.published ?? ""),
     entries: rawEntries.map(parseEntry),
   });
+}
+
+function toISODate(dateStr: string): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? dateStr : d.toISOString();
 }
 
 function parseEntry(raw: any): FeedEntry {
@@ -53,8 +60,8 @@ function parseEntry(raw: any): FeedEntry {
     title: raw.title,
     link,
     author: raw.author?.name ?? "",
-    published: raw.published ?? "",
-    updated: raw.updated,
+    published: toISODate(raw.published ?? ""),
+    updated: raw.updated ? toISODate(raw.updated) : undefined,
     description: media?.["media:description"] ?? "",
     thumbnail: thumbnail?.["@_url"],
   };

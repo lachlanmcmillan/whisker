@@ -30,11 +30,18 @@ export function parseRssFeed(xml: string): Result<Feed> {
     title: channel.title,
     description: channel.description ?? "",
     link: channel.link ?? "",
+    feedUrl: "",
     author: channel["itunes:author"] ?? channel["dc:creator"] ?? "",
-    published: channel.lastBuildDate ?? channel.pubDate ?? "",
+    published: toISODate(channel.lastBuildDate ?? channel.pubDate ?? ""),
     image: channel.image?.url,
     entries: rawItems.map(parseItem),
   });
+}
+
+function toISODate(dateStr: string): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? dateStr : d.toISOString();
 }
 
 function parseItem(raw: any): FeedEntry {
@@ -45,7 +52,7 @@ function parseItem(raw: any): FeedEntry {
     title: raw.title ?? "",
     link: raw.link ?? "",
     author: raw["dc:creator"] ?? raw.author ?? "",
-    published: raw.pubDate ?? "",
+    published: toISODate(raw.pubDate ?? ""),
     description: raw.description ?? "",
     thumbnail: enclosure?.["@_url"],
     content: raw["content:encoded"],
