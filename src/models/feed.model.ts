@@ -12,6 +12,7 @@ export interface FeedEntry {
   description: string;
   thumbnail?: string;
   content?: string;
+  openedAt?: string;
 }
 
 export interface Feed {
@@ -83,6 +84,7 @@ interface FeedRow {
 }
 
 interface EntryRow {
+  feedId: number;
   entryId: string;
   title: string;
   link: string;
@@ -92,10 +94,12 @@ interface EntryRow {
   description: string;
   thumbnail: string | null;
   content: string | null;
+  openedAt: string | null;
 }
 
 function toFeedEntry(e: EntryRow): FeedEntry {
   return {
+    feedId: e.feedId,
     entryId: e.entryId,
     title: e.title,
     link: e.link,
@@ -105,6 +109,7 @@ function toFeedEntry(e: EntryRow): FeedEntry {
     description: e.description,
     thumbnail: e.thumbnail ?? undefined,
     content: e.content ?? undefined,
+    openedAt: e.openedAt ?? undefined,
   };
 }
 
@@ -169,6 +174,18 @@ export async function deleteFeed(feedId: number): AsyncResult<void> {
     DELETE
       FROM feeds
      WHERE id = ${feedId}
+  `;
+  if (result.error) return result;
+
+  return ok(undefined);
+}
+
+export async function markEntryOpened(feedId: number, entryId: string): AsyncResult<void> {
+  const result = await sql`
+    UPDATE entries
+       SET openedAt = ${new Date().toISOString()}
+     WHERE feedId = ${feedId}
+       AND entryId = ${entryId}
   `;
   if (result.error) return result;
 

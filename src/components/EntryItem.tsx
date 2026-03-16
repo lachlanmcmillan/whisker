@@ -1,6 +1,7 @@
 import { createSignal, Show } from "solid-js";
 import DOMPurify from "dompurify";
 import type { FeedEntry } from "../models/feed.model";
+import { markEntryOpened } from "../models/feed.model";
 import { Button } from "./Button";
 import { CachedThumbnail } from "./CachedThumbnail";
 import { Link } from "./Link";
@@ -13,15 +14,25 @@ export function EntryItem(props: { entry: FeedEntry }) {
   return (
     <li class={styles.entry}>
       <Show when={props.entry.thumbnail}>
-        <CachedThumbnail
-          url={props.entry.thumbnail!}
-          width={120}
-          alt={props.entry.title}
-        />
+        <Link
+          href={props.entry.link}
+          onClick={() => props.entry.feedId && markEntryOpened(props.entry.feedId, props.entry.entryId)}
+        >
+          <CachedThumbnail
+            url={props.entry.thumbnail!}
+            width={120}
+            alt={props.entry.title}
+          />
+        </Link>
       </Show>
       <div class={styles.entryBody}>
         <Title level={2}>
-          <Link href={props.entry.link}>{props.entry.title}</Link>
+          <Link
+            href={props.entry.link}
+            onClick={() => props.entry.feedId && markEntryOpened(props.entry.feedId, props.entry.entryId)}
+          >
+            {props.entry.title}
+          </Link>
         </Title>
         <p class={styles.meta}>
           by {props.entry.author} —{" "}

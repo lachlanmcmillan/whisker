@@ -9,6 +9,22 @@
 .item {
   display: flex;
   flex-direction: column;
+  padding: 0.5rem;
+  border-radius: 10px;
+
+  &[data-opened-at] {
+    transform: grayscale(100%);
+    opacity: 0.5;
+    &:hover {
+      transform: grayscale(0%);
+      opacity: 1;
+    }
+
+  }
+}
+
+.item:hover {
+  background-color: #2a3a20;
 }
 
 .thumbnail {
@@ -60,4 +76,15 @@
   font-size: 0.8rem;
   color: #888;
   margin: 0;
+}
+
+.description {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin: 0.3rem 0 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

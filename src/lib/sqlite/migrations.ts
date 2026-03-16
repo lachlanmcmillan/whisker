@@ -3,7 +3,7 @@ export interface Migration {
   sql: string;
 }
 
-export const MAX_MIGRATION = 6;
+export const MAX_MIGRATION = 7;
 
 export const migrations: Migration[] = [
   {
@@ -93,6 +93,12 @@ export const migrations: Migration[] = [
     sql: `
       ALTER TABLE feeds ADD COLUMN feedUrl TEXT NOT NULL DEFAULT '';
       ALTER TABLE feeds ADD COLUMN fetchedAt TEXT;
+    `,
+  },
+  {
+    version: 7,
+    sql: `
+      ALTER TABLE entries ADD COLUMN openedAt TEXT;
     `,
   },
 ];
