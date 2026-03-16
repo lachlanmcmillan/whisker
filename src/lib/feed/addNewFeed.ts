@@ -94,6 +94,7 @@ export async function addNewFeed(url: string): AsyncResult<Feed> {
     if (discoveredParseResult.error) return discoveredParseResult;
 
     feed = discoveredParseResult.data;
+    feed.feedUrl = feedUrl;
     console.log("[addNewFeed] parsed discovered feed:", feed.title);
   } else {
     feed = parseResult.data;
@@ -103,7 +104,9 @@ export async function addNewFeed(url: string): AsyncResult<Feed> {
   if (!feed.link) {
     feed.link = url;
   }
-  feed.feedUrl = url;
+  if (!feed.feedUrl) {
+    feed.feedUrl = url;
+  }
 
   const existingResult = await readFeedByLink(feed.link);
   if (existingResult.error) return existingResult;
@@ -129,20 +132,38 @@ export async function addNewFeed(url: string): AsyncResult<Feed> {
   return ok(feed);
 }
 
-export async function refreshFeed(feedUrl: string): AsyncResult<Feed> {
-  console.log("[refreshFeed] fetching", feedUrl);
-  const textResult = await fetchText(feedUrl);
+export async function refreshFeed(url: string): AsyncResult<Feed> {
+  console.log("[refreshFeed] fetching", url);
+  const textResult = await fetchText(url);
   if (textResult.error) return textResult;
 
+  let feed: Feed;
   const parseResult = parseFeed(textResult.data);
-  if (parseResult.error) return parseResult;
+  if (parseResult.error) {
+    console.log("[refreshFeed] not a feed, discovering feed link in HTML...");
+    const discoveredUrl = discoverFeedUrl(textResult.data, url);
+    if (!discoveredUrl) {
+      return err("feed_not_found", "No RSS or Atom feed link found", { url });
+    }
+    console.log("[refreshFeed] discovered feed URL:", discoveredUrl);
 
-  const feed = parseResult.data;
-  feed.feedUrl = feedUrl;
+    const feedTextResult = await fetchText(discoveredUrl);
+    if (feedTextResult.error) return feedTextResult;
+
+    const discoveredParseResult = parseFeed(feedTextResult.data);
+    if (discoveredParseResult.error) return discoveredParseResult;
+
+    feed = discoveredParseResult.data;
+    feed.feedUrl = discoveredUrl;
+  } else {
+    feed = parseResult.data;
+    feed.feedUrl = url;
+  }
+
   feed.fetchedAt = new Date().toISOString();
 
   if (!feed.link) {
-    feed.link = feedUrl;
+    feed.link = url;
   }
 
   console.log(
