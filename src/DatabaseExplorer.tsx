@@ -3,6 +3,7 @@ import { sql } from "./lib/sqlite/sqlite";
 import { Button } from "./components/Button";
 import { Title } from "./components/Title";
 import styles from "./DatabaseExplorer.module.css";
+import type { Err } from "./lib/result";
 
 interface TableInfo {
   name: string;
@@ -16,7 +17,7 @@ export function DatabaseExplorer() {
   const [selectedTable, setSelectedTable] = createSignal<string | null>(null);
   const [rows, setRows] = createSignal<Row[]>([]);
   const [sqlText, setSqlText] = createSignal("");
-  const [error, setError] = createSignal<string | null>(null);
+  const [error, setError] = createSignal<Err | null>(null);
   const [isCustomQuery, setIsCustomQuery] = createSignal(false);
 
   onMount(() => {
@@ -25,31 +26,28 @@ export function DatabaseExplorer() {
 
   async function query(sqlStr: string): Promise<Row[]> {
     // Use the sql template tag with the full query as the first string segment
-    const strings = Object.assign([sqlStr], { raw: [sqlStr] }) as unknown as TemplateStringsArray;
+    const strings = Object.assign([sqlStr], {
+      raw: [sqlStr],
+    }) as unknown as TemplateStringsArray;
     const result = await sql<Row>(strings);
     if (result.error) {
-      throw new Error(result.error.message);
+      setError(result);
+      throw result.error;
     }
     return result.data;
   }
 
   async function loadTables() {
-    try {
-      const tableRows = await query(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
-      );
-      const infos: TableInfo[] = [];
-      for (const row of tableRows) {
-        const name = row.name as string;
-        const countRows = await query(
-          `SELECT COUNT(*) as count FROM "${name}"`
-        );
-        infos.push({ name, count: countRows[0]?.count as number });
-      }
-      setTables(infos);
-    } catch (e) {
-      setError(String(e));
+    const tableRows = await query(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+    );
+    const infos: TableInfo[] = [];
+    for (const row of tableRows) {
+      const name = row.name as string;
+      const countRows = await query(`SELECT COUNT(*) as count FROM "${name}"`);
+      infos.push({ name, count: countRows[0]?.count as number });
     }
+    setTables(infos);
   }
 
   async function selectTable(name: string) {
@@ -58,13 +56,8 @@ export function DatabaseExplorer() {
     setSelectedTable(name);
     const tableQuery = `SELECT * FROM "${name}" LIMIT 200`;
     setSqlText(tableQuery);
-    try {
-      const data = await query(tableQuery);
-      setRows(data);
-    } catch (e) {
-      setError(String(e));
-      setRows([]);
-    }
+    const data = await query(tableQuery);
+    setRows(data);
   }
 
   async function runSql() {
@@ -72,14 +65,9 @@ export function DatabaseExplorer() {
     setError(null);
     setIsCustomQuery(true);
     setSelectedTable(null);
-    try {
-      const data = await query(sqlText());
-      setRows(data);
-      loadTables();
-    } catch (e) {
-      setError(String(e));
-      setRows([]);
-    }
+    const data = await query(sqlText());
+    setRows(data);
+    loadTables();
   }
 
   const columns = () => (rows().length > 0 ? Object.keys(rows()[0]) : []);
@@ -102,8 +90,23 @@ export function DatabaseExplorer() {
         </For>
       </div>
 
+      <div class={styles.sqlSection}>
+        <textarea
+          class={styles.sqlInput}
+          value={sqlText()}
+          onInput={(e) => setSqlText(e.currentTarget.value)}
+          placeholder="Enter SQL query..."
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              runSql();
+            }
+          }}
+        />
+        <Button onClick={runSql}>Run SQL</Button>
+      </div>
+
       <Show when={error()}>
-        <p class={styles.error}>{error()}</p>
+        <p class={styles.error}>{error()?.error.message}</p>
       </Show>
 
       <Show
@@ -138,21 +141,6 @@ export function DatabaseExplorer() {
           </tbody>
         </table>
       </Show>
-
-      <div class={styles.sqlSection}>
-        <textarea
-          class={styles.sqlInput}
-          value={sqlText()}
-          onInput={(e) => setSqlText(e.currentTarget.value)}
-          placeholder="Enter SQL query..."
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-              runSql();
-            }
-          }}
-        />
-        <Button onClick={runSql}>Run SQL</Button>
-      </div>
     </div>
   );
 }
