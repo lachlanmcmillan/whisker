@@ -1,7 +1,8 @@
 import { sql } from "../lib/sqlite/sqlite";
 
 export interface FeedEntry {
-  id: string;
+  entryId: string;
+  feedId?: number;
   title: string;
   link: string;
   author: string;
@@ -47,7 +48,7 @@ export async function upsertFeed(feed: Feed): Promise<number> {
 async function upsertEntry(feedId: number, entry: FeedEntry): Promise<void> {
   await sql`
     INSERT INTO entries (feedId, entryId, title, link, author, published, updated, description, thumbnail, content)
-         VALUES (${feedId}, ${entry.id}, ${entry.title}, ${entry.link}, ${entry.author}, ${entry.published}, ${entry.updated ?? null}, ${entry.description}, ${entry.thumbnail ?? null}, ${entry.content ?? null})
+         VALUES (${feedId}, ${entry.entryId}, ${entry.title}, ${entry.link}, ${entry.author}, ${entry.published}, ${entry.updated ?? null}, ${entry.description}, ${entry.thumbnail ?? null}, ${entry.content ?? null})
              ON CONFLICT(feedId, entryId) DO UPDATE SET
       title = excluded.title,
       link = excluded.link,
@@ -99,7 +100,7 @@ export async function readAllFeeds(): Promise<Feed[]> {
     `;
 
     const entries: FeedEntry[] = entryRows.map((e) => ({
-      id: e.entryId,
+      entryId: e.entryId,
       title: e.title,
       link: e.link,
       author: e.author,

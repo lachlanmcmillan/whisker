@@ -3,7 +3,7 @@ export interface Migration {
   sql: string;
 }
 
-export const MAX_MIGRATION = 4;
+export const MAX_MIGRATION = 5;
 
 export const migrations: Migration[] = [
   {
@@ -70,6 +70,21 @@ export const migrations: Migration[] = [
         fetchedAt TEXT NOT NULL DEFAULT (datetime('now')),
         lastAccessedAt TEXT NOT NULL DEFAULT (datetime('now')),
         UNIQUE(entryId, url)
+      );
+    `,
+  },
+  {
+    version: 5,
+    sql: `
+      DROP TABLE IF EXISTS thumbnailCache;
+
+      CREATE TABLE thumbnailCache (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        url TEXT NOT NULL UNIQUE,
+        data TEXT NOT NULL,
+        contentType TEXT NOT NULL,
+        fetchedAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        lastAccessedAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
       );
     `,
   },

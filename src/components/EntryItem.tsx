@@ -2,6 +2,7 @@ import { useState } from "react";
 import DOMPurify from "dompurify";
 import type { FeedEntry } from "../models/feed.model";
 import { Button } from "./Button";
+import { CachedThumbnail } from "./CachedThumbnail";
 import { Link } from "./Link";
 import { Title } from "./Title";
 import styles from "./entryItem.module.css";
@@ -12,15 +13,14 @@ export function EntryItem({ entry }: { entry: FeedEntry }) {
   return (
     <li className={styles.entry}>
       {entry.thumbnail && (
-        <img src={entry.thumbnail} width={120} alt={entry.title} />
+        <CachedThumbnail url={entry.thumbnail} width={120} alt={entry.title} />
       )}
       <div className={styles.entryBody}>
         <Title level={2}>
           <Link href={entry.link}>{entry.title}</Link>
         </Title>
         <p className={styles.meta}>
-          by {entry.author} —{" "}
-          {new Date(entry.published).toLocaleDateString()}
+          by {entry.author} — {new Date(entry.published).toLocaleDateString()}
           {entry.updated &&
             ` — Updated: ${new Date(entry.updated).toLocaleDateString()}`}
         </p>

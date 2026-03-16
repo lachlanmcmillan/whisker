@@ -77,7 +77,7 @@ function App() {
 
       <ul className={styles.entries}>
         {feed.entries.map((entry) => (
-          <EntryItem key={entry.id} entry={entry} />
+          <EntryItem key={entry.entryId} entry={entry} />
         ))}
       </ul>
     </div>

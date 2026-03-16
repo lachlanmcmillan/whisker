@@ -31,7 +31,7 @@ function parseItem(raw: any): FeedEntry {
   const enclosure = raw.enclosure;
 
   return {
-    id: raw.guid?.["#text"] ?? raw.guid ?? raw.link ?? "",
+    entryId: raw.guid?.["#text"] ?? raw.guid ?? raw.link ?? "",
     title: raw.title ?? "",
     link: raw.link ?? "",
     author: raw["dc:creator"] ?? raw.author ?? "",
