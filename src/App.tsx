@@ -6,6 +6,7 @@ import { Title } from "./components/Title";
 import { AddFeedPopover } from "./components/AddFeedPopover";
 import { DatabaseExplorer } from "./DatabaseExplorer";
 import { readAllFeeds } from "./models/feed.model";
+import { addNewFeed } from "./lib/feed/addNewFeed";
 import styles from "./App.module.css";
 
 function App() {
@@ -13,6 +14,13 @@ function App() {
   const [activeIndex, setActiveIndex] = createSignal(0);
   const [loading, setLoading] = createSignal(true);
   const [view, setView] = createSignal<"feeds" | "explorer">("feeds");
+
+  const handleAddFeed = async (url: string) => {
+    await addNewFeed(url);
+    const updated = await readAllFeeds();
+    setFeeds(updated);
+    setActiveIndex(updated.length - 1);
+  };
 
   onMount(async () => {
     let loaded = await readAllFeeds();
@@ -57,7 +65,7 @@ function App() {
                     </Button>
                   )}
                 </For>
-                <AddFeedPopover onAdd={(url) => console.log("TODO: add feed", url)} />
+                <AddFeedPopover onAdd={handleAddFeed} />
                 <Button onClick={() => setView("explorer")}>DB Explorer</Button>
               </nav>
 
