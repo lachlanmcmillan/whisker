@@ -45,7 +45,7 @@ export async function initDB(): Promise<void> {
   });
 
   const openResponse = await promiser("open", {
-    filename: "file:xfraidycat.sqlite3?vfs=opfs",
+    filename: "file:whisker.sqlite3?vfs=opfs",
   });
 
   const { dbId } = openResponse;
