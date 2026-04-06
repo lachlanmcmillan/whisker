@@ -1,0 +1,26 @@
+{
+  "name": "@whisker/client",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "tsc": "tsc",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "dompurify": "^3.3.3",
+    "solid-js": "^1.9.12",
+    "@whisker/common": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/dompurify": "^3.2.0",
+    "typescript": "catalog:",
+    "vite": "^8.0.3",
+    "vite-plugin-solid": "^2.11.12"
+  },
+  "overrides": {
+    "vite": "^8.0.0-beta.13"
+  }
+}

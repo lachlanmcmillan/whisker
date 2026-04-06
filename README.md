@@ -1,75 +1,46 @@
-# React + TypeScript + Vite
+# Whisker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A personal feed reader that runs in your browser.
 
-Currently, two official plugins are available:
+## Why
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+You own it. No proprietary service collecting data on you. No risk of it getting shut down. No login, no account, no algorithm deciding what you see.
 
-## React Compiler
+Whisker tracks YouTube channels and blogs so you know when there's new content, and keeps track of what you have and haven't seen/read.
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+## How it works
 
-Note: This will impact Vite dev & build performances.
+Feed fetching happens in the browser, not on a server. This means no central server IP to get rate-limited or blocked by services. If this reader is shared with friends, the fetching load is distributed across their browsers.
 
-## Expanding the ESLint configuration
+The database is SQLite WASM running in the browser via OPFS. RSS and Atom feeds are supported with auto-discovery from website URLs.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Current status
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Working single-browser prototype. You can subscribe to feeds, browse entries in grid or list view, toggle read state, and refresh feeds. It's daily-driver ready on one device.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## The sync problem
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+The architecture is local-first: SQLite lives in the browser via OPFS, which is per-origin and per-browser. There is no path from one browser to another without introducing some form of sync.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### What we know
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- Sync is the only blocker to daily use across devices
+- Feed fetching must stay client-side to distribute IP load (this is a feature, not a limitation)
+- A sync mechanism should be simple. For one user across a few devices, latest-write-wins at the row level is sufficient. No CRDTs or complex merge logic needed
+- Each row has a timestamp; when two copies disagree, the newer write wins
+- This works because feed reader data (subscriptions, read state, entries) doesn't have meaningful merge conflicts
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### What syncs
+
+- Feed subscriptions (add/remove)
+- Read/unread state (the primary thing that needs to travel between devices)
+- Entry metadata (though entries mostly come from the feed itself)
+
+### What doesn't need to sync
+
+- Cached thumbnails (each device can fetch its own)
+- Full article content (fetched fresh from the feed)
+
+### Open question
+
+How the sync data travels between devices. The "relay" could be anything that can store and retrieve a blob: a cloud folder (iCloud Drive, Dropbox), a GitHub repo/gist, an S3 bucket, a tiny API on a free tier, or something else entirely. The transport is an open design decision.
