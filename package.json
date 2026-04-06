@@ -2,15 +2,21 @@
   "name": "whisker",
   "private": true,
   "workspaces": {
-    "packages": ["common", "client", "server"],
+    "packages": [
+      "common",
+      "client",
+      "server"
+    ],
     "catalog": {
       "typescript": "~6.0.2"
     }
   },
+  "devDependencies": {
+    "prettier": "^3.8.1"
+  },
   "scripts": {
     "dev": "bun run --parallel --filter @whisker/server --filter @whisker/client dev",
+    "prettier": "prettier --write \"**/src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "tsc": "bun run --sequential --filter @whisker/server --filter @whisker/client tsc"
   }
-  
-
 }
