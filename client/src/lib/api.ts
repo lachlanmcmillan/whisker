@@ -29,8 +29,9 @@ export interface Feed {
 
 export async function fetchFeeds(): Promise<Feed[]> {
   const res = await fetch(`${BASE}/feeds`);
-  if (!res.ok) throw new Error("Failed to fetch feeds");
-  return res.json();
+  const result = await res.json();
+  if (result.error) throw new Error(result.error.message);
+  return result.data;
 }
 
 export async function addFeed(url: string): Promise<Feed> {
@@ -39,9 +40,9 @@ export async function addFeed(url: string): Promise<Feed> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? "Failed to add feed");
-  return data;
+  const result = await res.json();
+  if (result.error) throw new Error(result.error.message);
+  return result.data;
 }
 
 export async function deleteFeed(id: number): Promise<void> {
@@ -51,9 +52,9 @@ export async function deleteFeed(id: number): Promise<void> {
 
 export async function refreshFeed(id: number): Promise<Feed> {
   const res = await fetch(`${BASE}/feeds/${id}/refresh`, { method: "POST" });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? "Failed to refresh feed");
-  return data;
+  const result = await res.json();
+  if (result.error) throw new Error(result.error.message);
+  return result.data;
 }
 
 export async function query(sql: string): Promise<Record<string, unknown>[]> {
