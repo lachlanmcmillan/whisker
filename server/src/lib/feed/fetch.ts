@@ -71,6 +71,9 @@ export async function fetchFeed(url: string): AsyncResult<Feed> {
 
   if (!feed.link) feed.link = url;
   if (!feed.feedUrl) feed.feedUrl = url;
+  if (!feed.published && feed.entries.length > 0) {
+    feed.published = feed.entries[0].published;
+  }
   feed.fetchedAt = new Date().toISOString();
 
   return ok(feed);
