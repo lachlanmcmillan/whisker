@@ -1,5 +1,6 @@
-import { Show, For } from "solid-js";
-import type { FeedEntry } from "$lib/api";
+import { createSignal, Show, For } from "solid-js";
+import type { Feed, FeedEntry } from "$lib/api";
+import { Button } from "$components/Button/Button";
 import { CachedThumbnail } from "$components/CachedThumbnail/CachedThumbnail";
 import { CheckButton } from "$components/CheckButton/CheckButton";
 import { timeAgo } from "$lib/timeAgo";
@@ -12,10 +13,12 @@ interface GridEntry {
 }
 
 function flattenAndSort(
-  feeds: readonly { title: string; entries: readonly FeedEntry[] }[]
+  feeds: readonly Feed[],
+  filterFeedId: number | null
 ): GridEntry[] {
   const items: GridEntry[] = [];
   for (const feed of feeds) {
+    if (filterFeedId !== null && feed.id !== filterFeedId) continue;
     for (const entry of feed.entries) {
       items.push({ entry, feedTitle: feed.title });
     }
@@ -29,75 +32,96 @@ function flattenAndSort(
 }
 
 export function GridView() {
-  const items = () => flattenAndSort(feeds);
+  const [selectedFeedId, setSelectedFeedId] = createSignal<number | null>(null);
+  const items = () => flattenAndSort(feeds, selectedFeedId());
 
   return (
-    <ul class={styles.grid}>
-      <For each={items()}>
-        {item => (
-          <li
-            class={styles.item}
-            data-entry-id={item.entry.entryId}
-            data-opened-at={item.entry.openedAt}
-          >
-            <CheckButton
-              checked={!!item.entry.openedAt}
-              onClick={() => {
-                if (!item.entry.feedId) return;
-                toggleEntryRead(
-                  item.entry.feedId,
-                  item.entry.entryId,
-                  !!item.entry.openedAt
-                );
-              }}
-            />
-            <a
-              href={item.entry.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() =>
-                item.entry.feedId &&
-                toggleEntryRead(item.entry.feedId, item.entry.entryId, false)
-              }
+    <>
+      <nav class={styles.feedTabs}>
+        <Button
+          active={selectedFeedId() === null}
+          onClick={() => setSelectedFeedId(null)}
+        >
+          All
+        </Button>
+        <For each={[...feeds]}>
+          {f => (
+            <Button
+              active={selectedFeedId() === f.id}
+              onClick={() => setSelectedFeedId(f.id)}
             >
-              <Show
-                when={item.entry.thumbnail}
-                fallback={<div class={styles.placeholder} />}
+              {f.title}
+            </Button>
+          )}
+        </For>
+      </nav>
+      <ul class={styles.grid}>
+        <For each={items()}>
+          {item => (
+            <li
+              class={styles.item}
+              data-entry-id={item.entry.entryId}
+              data-opened-at={item.entry.openedAt}
+            >
+              <CheckButton
+                checked={!!item.entry.openedAt}
+                onClick={() => {
+                  if (!item.entry.feedId) return;
+                  toggleEntryRead(
+                    item.entry.feedId,
+                    item.entry.entryId,
+                    !!item.entry.openedAt
+                  );
+                }}
+              />
+              <a
+                href={item.entry.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() =>
+                  item.entry.feedId &&
+                  toggleEntryRead(item.entry.feedId, item.entry.entryId, false)
+                }
               >
-                <CachedThumbnail
-                  url={item.entry.thumbnail!}
-                  alt={item.entry.title}
-                  class={styles.thumbnail}
-                />
-              </Show>
-            </a>
-            <div class={styles.info}>
-              <p class={styles.title}>
-                <a
-                  href={item.entry.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() =>
-                    item.entry.feedId &&
-                    toggleEntryRead(
-                      item.entry.feedId,
-                      item.entry.entryId,
-                      false
-                    )
-                  }
+                <Show
+                  when={item.entry.thumbnail}
+                  fallback={<div class={styles.placeholder} />}
                 >
-                  {item.entry.title}
-                </a>
-              </p>
-              <p class={styles.feedName}>{item.feedTitle}</p>
-              <p class={styles.time}>{timeAgo(item.entry.published)}</p>
-              <Show when={item.entry.description}>
-                <p class={styles.description}>{item.entry.description}</p>
-              </Show>
-            </div>
-          </li>
-        )}
-      </For>
-    </ul>
+                  <CachedThumbnail
+                    url={item.entry.thumbnail!}
+                    alt={item.entry.title}
+                    class={styles.thumbnail}
+                  />
+                </Show>
+              </a>
+              <div class={styles.info}>
+                <p class={styles.title}>
+                  <a
+                    href={item.entry.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() =>
+                      item.entry.feedId &&
+                      toggleEntryRead(
+                        item.entry.feedId,
+                        item.entry.entryId,
+                        false
+                      )
+                    }
+                  >
+                    {item.entry.title}
+                  </a>
+                </p>
+                <p class={styles.feedName}>{item.feedTitle}</p>
+                <p class={styles.time}>{timeAgo(item.entry.published)}</p>
+                <Show when={item.entry.description}>
+                  <p class={styles.description}>{item.entry.description}</p>
+                </Show>
+              </div>
+            </li>
+          )}
+        </For>
+      </ul>
+    </>
   );
 }

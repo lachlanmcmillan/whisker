@@ -11,12 +11,20 @@ import { appSettingsStore } from "$stores/settings.store";
 import styles from "./App.module.css";
 
 function App() {
-  const [activeIndex, setActiveIndex] = createSignal(0);
+  const [activeIndex, setActiveIndex] = createSignal(-1);
   const [loading, setLoading] = createSignal(true);
   const [refreshing, setRefreshing] = createSignal(false);
   const [refreshError, setRefreshError] = createSignal<string | null>(null);
   const [view, setView] = createSignal<"feeds" | "explorer">("feeds");
   const [appSettings, setAppSettings] = appSettingsStore;
+
+  const allEntriesSorted = () =>
+    [...feeds]
+      .flatMap(f => f.entries)
+      .sort(
+        (a, b) =>
+          new Date(b.published).getTime() - new Date(a.published).getTime()
+      );
 
   const handleFeedAdded = async () => {
     const data = await loadFeeds();
@@ -82,25 +90,34 @@ function App() {
           <Show
             when={appSettings.layout === "Grid"}
             fallback={
-              <Show when={feeds[activeIndex()]}>
-                {feed => (
-                  <>
-                    <nav class={styles.feedTabs}>
-                      <For each={[...feeds]}>
-                        {(f, i) => (
-                          <Button
-                            active={i() === activeIndex()}
-                            onClick={() => {
-                              setActiveIndex(i());
-                              setRefreshError(null);
-                            }}
-                          >
-                            {f.title}
-                          </Button>
-                        )}
-                      </For>
-                    </nav>
+              <>
+                <nav class={styles.feedTabs}>
+                  <Button
+                    active={activeIndex() === -1}
+                    onClick={() => {
+                      setActiveIndex(-1);
+                      setRefreshError(null);
+                    }}
+                  >
+                    All
+                  </Button>
+                  <For each={[...feeds]}>
+                    {(f, i) => (
+                      <Button
+                        active={i() === activeIndex()}
+                        onClick={() => {
+                          setActiveIndex(i());
+                          setRefreshError(null);
+                        }}
+                      >
+                        {f.title}
+                      </Button>
+                    )}
+                  </For>
+                </nav>
 
+                <Show when={activeIndex() >= 0 && feeds[activeIndex()]}>
+                  {feed => (
                     <div class={styles.feedHeader}>
                       <Title>{feed().title}</Title>
                       <p>
@@ -117,15 +134,21 @@ function App() {
                         <p class={styles.error}>{refreshError()}</p>
                       </Show>
                     </div>
+                  )}
+                </Show>
 
-                    <ul class={styles.entries}>
-                      <For each={feed().entries}>
-                        {entry => <EntryItem entry={entry} />}
-                      </For>
-                    </ul>
-                  </>
-                )}
-              </Show>
+                <ul class={styles.entries}>
+                  <For
+                    each={
+                      activeIndex() === -1
+                        ? allEntriesSorted()
+                        : feeds[activeIndex()]?.entries ?? []
+                    }
+                  >
+                    {entry => <EntryItem entry={entry} />}
+                  </For>
+                </ul>
+              </>
             }
           >
             <GridView />
