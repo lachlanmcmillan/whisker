@@ -58,11 +58,7 @@ How the sync data travels between devices. The "relay" could be anything that ca
 
 ### Server setup
 
-Installs Docker and Caddy on the server. Caddy acts as a reverse proxy, terminating HTTPS and forwarding requests to the Docker container. Certificates are provisioned automatically via Let's Encrypt.
-
-```sh
-bun run setup-server
-```
+See [SETUP.md](SETUP.md) for instructions on installing Docker and Caddy on the server.
 
 ### Deploy the server
 
@@ -84,3 +80,5 @@ Set these in `.env.local` at the repo root:
 |---|---|---|
 | `DEPLOY_SSH_HOST` | SSH destination for the server | `ubuntu@1.2.3.4` |
 | `DEPLOY_SERVER_PORT` | Port the container exposes on the server | `8022` |
+| `API_KEY` | API key for authenticating requests. Alphanumeric only (no symbols) | `abc123...` |
+| `DEPLOY_CORS_ORIGIN` | Allowed CORS origin for the frontend | `https://whisker.lmcmillan.dev` |

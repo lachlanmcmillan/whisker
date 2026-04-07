@@ -86,7 +86,6 @@ await ssh(`docker rm ${container} 2>/dev/null || true`);
 done("Container stopped");
 
 step(`Starting container ${chalk.bold(container)} on port ${chalk.bold(remotePort)}...`);
-const escapedApiKey = apiKey!.replace(/'/g, "'\\''");
 const dockerRunArgs = [
   "docker run -d",
   `--name ${container}`,
@@ -95,8 +94,8 @@ const dockerRunArgs = [
   "-v whisker-data:/data",
   "-e DB_PATH=/data/whisker.db",
   `-e COMMIT_SHA=${sha}`,
-  `-e API_KEY='${escapedApiKey}'`,
-  ...(corsOrigin ? [`-e DEPLOY_CORS_ORIGIN='${corsOrigin}'`] : []),
+  `-e API_KEY=${apiKey}`,
+  ...(corsOrigin ? [`-e DEPLOY_CORS_ORIGIN=${corsOrigin}`] : []),
   image,
 ];
 await ssh(dockerRunArgs.join(" "));
