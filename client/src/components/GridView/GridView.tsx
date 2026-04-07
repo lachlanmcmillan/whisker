@@ -1,6 +1,7 @@
-import { createSignal, Show, For } from "solid-js";
+import { createSignal, createMemo, Show, For } from "solid-js";
 import type { Feed, FeedEntry } from "$lib/api";
 import { Button } from "$components/Button/Button";
+import { FeedHeader } from "$components/FeedHeader/FeedHeader";
 import { CachedThumbnail } from "$components/CachedThumbnail/CachedThumbnail";
 import { CheckButton } from "$components/CheckButton/CheckButton";
 import { timeAgo } from "$lib/timeAgo";
@@ -34,6 +35,10 @@ function flattenAndSort(
 export function GridView() {
   const [selectedFeedId, setSelectedFeedId] = createSignal<number | null>(null);
   const items = () => flattenAndSort(feeds, selectedFeedId());
+  const selectedFeed = createMemo(() => {
+    const id = selectedFeedId();
+    return id !== null ? [...feeds].find(f => f.id === id) ?? null : null;
+  });
 
   return (
     <>
@@ -55,6 +60,9 @@ export function GridView() {
           )}
         </For>
       </nav>
+      <Show when={selectedFeed()}>
+        {feed => <FeedHeader feed={feed()} />}
+      </Show>
       <ul class={styles.grid}>
         <For each={items()}>
           {item => (

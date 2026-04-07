@@ -1,6 +1,6 @@
 import { createStore, reconcile } from "solid-js/store";
 import type { Feed } from "$lib/api";
-import { fetchFeeds, updateEntry } from "$lib/api";
+import { fetchFeeds, updateEntry, deleteFeed } from "$lib/api";
 
 const [feeds, setFeeds] = createStore<Feed[]>([]);
 
@@ -20,4 +20,9 @@ async function toggleEntryRead(
   await loadFeeds();
 }
 
-export { feeds, loadFeeds, toggleEntryRead };
+async function removeFeed(feedId: number) {
+  await deleteFeed(feedId);
+  await loadFeeds();
+}
+
+export { feeds, loadFeeds, toggleEntryRead, removeFeed };

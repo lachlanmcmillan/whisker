@@ -1,0 +1,11 @@
+.feedHeader {
+  margin-bottom: 2rem;
+}
+
+.feedHeader p {
+  color: #888;
+}
+
+.meta {
+  font-size: 0.85rem;
+}

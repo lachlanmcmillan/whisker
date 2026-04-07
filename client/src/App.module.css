@@ -17,14 +17,6 @@
   flex-wrap: wrap;
 }
 
-.feedHeader {
-  margin-bottom: 2rem;
-}
-
-.feedHeader p {
-  color: #888;
-}
-
 .error {
   color: #e55;
   margin-top: 0.5rem;

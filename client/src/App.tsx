@@ -1,10 +1,11 @@
 import { createSignal, onMount, Show, For } from "solid-js";
 import { EntryItem } from "$components/EntryItem/EntryItem";
 import { Button } from "$components/Button/Button";
-import { Title } from "$components/Title/Title";
+import { FeedHeader } from "$components/FeedHeader/FeedHeader";
 import { AddFeedPopover } from "$components/AddFeedPopover/AddFeedPopover";
 import { GridView } from "$components/GridView/GridView";
 import { LoginForm } from "$components/LoginForm/LoginForm";
+import { FeedManager } from "$components/FeedManager/FeedManager";
 import { DatabaseExplorer } from "./DatabaseExplorer";
 import { getApiKey, setOnUnauthorized, refreshFeed } from "$lib/api";
 import { feeds, loadFeeds } from "$stores/feeds.store";
@@ -17,7 +18,7 @@ function App() {
   const [loading, setLoading] = createSignal(true);
   const [refreshing, setRefreshing] = createSignal(false);
   const [refreshError, setRefreshError] = createSignal<string | null>(null);
-  const [view, setView] = createSignal<"feeds" | "explorer">("feeds");
+  const [view, setView] = createSignal<"feeds" | "manager" | "explorer">("feeds");
   const [appSettings, setAppSettings] = appSettingsStore;
 
   setOnUnauthorized(() => setAuthenticated(false));
@@ -69,19 +70,27 @@ function App() {
       when={!loading()}
       fallback={<div class={styles.feed}>Loading feeds...</div>}
     >
-      <Show
-        when={view() === "feeds"}
-        fallback={
-          <div>
-            <div class={styles.feed}>
-              <nav class={styles.tabs}>
-                <Button onClick={() => setView("feeds")}>Back to Feeds</Button>
-              </nav>
-            </div>
-            <DatabaseExplorer />
+      <Show when={view() === "manager"}>
+        <div class={styles.feed}>
+          <nav class={styles.tabs}>
+            <Button onClick={() => setView("feeds")}>Back to Feeds</Button>
+          </nav>
+          <FeedManager />
+        </div>
+      </Show>
+
+      <Show when={view() === "explorer"}>
+        <div>
+          <div class={styles.feed}>
+            <nav class={styles.tabs}>
+              <Button onClick={() => setView("feeds")}>Back to Feeds</Button>
+            </nav>
           </div>
-        }
-      >
+          <DatabaseExplorer />
+        </div>
+      </Show>
+
+      <Show when={view() === "feeds"}>
         <div class={styles.feed}>
           <nav class={styles.tabs}>
             <Button
@@ -97,6 +106,7 @@ function App() {
               Grid
             </Button>
             <AddFeedPopover onAdded={handleFeedAdded} />
+            <Button onClick={() => setView("manager")}>Feed Manager</Button>
             <Button onClick={() => setView("explorer")}>DB Explorer</Button>
           </nav>
 
@@ -131,15 +141,8 @@ function App() {
 
                 <Show when={activeIndex() >= 0 && feeds[activeIndex()]}>
                   {feed => (
-                    <div class={styles.feedHeader}>
-                      <Title>{feed().title}</Title>
-                      <p>
-                        by {feed().author} —{" "}
-                        {new Date(feed().published).toLocaleDateString()}
-                      </p>
-                      <Show when={feed().description}>
-                        <p>{feed().description}</p>
-                      </Show>
+                    <div>
+                      <FeedHeader feed={feed()} />
                       <Button onClick={handleRefreshFeed} disabled={refreshing()}>
                         {refreshing() ? "Refreshing..." : "Refresh"}
                       </Button>
