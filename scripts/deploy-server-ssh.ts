@@ -1,3 +1,18 @@
+/**
+ * Deploy the Whisker server to a remote host via SSH.
+ *
+ * Builds a Docker image locally, uploads it to the server via scp,
+ * then stops the old container and starts the new one. Finishes with
+ * a health check against /monitor to verify the deploy succeeded.
+ *
+ * Required env vars:
+ *   DEPLOY_SSH_HOST       - SSH destination (e.g. ubuntu@1.2.3.4)
+ *   DEPLOY_SERVER_PORT    - Port to expose on the remote host (default: 3000)
+ *
+ * Usage:
+ *   bun run deploy-server-ssh
+ */
+
 import { $ } from "bun";
 import chalk from "chalk";
 
