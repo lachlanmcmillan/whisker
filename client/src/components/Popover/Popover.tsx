@@ -1,5 +1,5 @@
 import { createSignal, type JSX } from "solid-js";
-import { Button } from "./Button";
+import { Button } from "$components/Button/Button";
 import styles from "./popover.module.css";
 
 interface PopoverProps {

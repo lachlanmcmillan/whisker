@@ -1,7 +1,7 @@
 import { createSignal, onMount, Show, For } from "solid-js";
-import { query } from "./lib/api";
-import { Button } from "./components/Button";
-import { Title } from "./components/Title";
+import { query } from "$lib/api";
+import { Button } from "$components/Button/Button";
+import { Title } from "$components/Title/Title";
 import styles from "./DatabaseExplorer.module.css";
 
 interface TableInfo {

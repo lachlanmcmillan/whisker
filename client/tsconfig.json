@@ -23,7 +23,13 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+
+    "paths": {
+      "$components/*": ["./src/components/*"],
+      "$lib/*": ["./src/lib/*"],
+      "$stores/*": ["./src/stores/*"]
+    }
   },
   "include": ["src"],
   "exclude": ["src/models", "src/lib/sqlite", "src/lib/feed", "src/lib/rss", "src/lib/atom", "src/lib/result.ts"]

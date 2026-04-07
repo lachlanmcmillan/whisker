@@ -1,13 +1,13 @@
 import { createSignal, onMount, Show, For } from "solid-js";
-import { EntryItem } from "./components/EntryItem";
-import { Button } from "./components/Button";
-import { Title } from "./components/Title";
-import { AddFeedPopover } from "./components/AddFeedPopover";
-import { GridView } from "./components/GridView";
+import { EntryItem } from "$components/EntryItem/EntryItem";
+import { Button } from "$components/Button/Button";
+import { Title } from "$components/Title/Title";
+import { AddFeedPopover } from "$components/AddFeedPopover/AddFeedPopover";
+import { GridView } from "$components/GridView/GridView";
 import { DatabaseExplorer } from "./DatabaseExplorer";
-import { refreshFeed } from "./lib/api";
-import { feeds, loadFeeds } from "./stores/feeds.store";
-import { appSettingsStore } from "./stores/settings.store";
+import { refreshFeed } from "$lib/api";
+import { feeds, loadFeeds } from "$stores/feeds.store";
+import { appSettingsStore } from "$stores/settings.store";
 import styles from "./App.module.css";
 
 function App() {
@@ -23,7 +23,7 @@ function App() {
     setActiveIndex(data.length - 1);
   };
 
-  const handleRefresh = async () => {
+  const handleRefreshFeed = async () => {
     const feed = feeds[activeIndex()];
     if (!feed?.id) return;
 
@@ -110,7 +110,7 @@ function App() {
                       <Show when={feed().description}>
                         <p>{feed().description}</p>
                       </Show>
-                      <Button onClick={handleRefresh} disabled={refreshing()}>
+                      <Button onClick={handleRefreshFeed} disabled={refreshing()}>
                         {refreshing() ? "Refreshing..." : "Refresh"}
                       </Button>
                       <Show when={refreshError()}>

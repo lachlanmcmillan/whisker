@@ -1,9 +1,9 @@
 import { Show, For } from "solid-js";
-import type { FeedEntry } from "../lib/api";
-import { CachedThumbnail } from "./CachedThumbnail";
-import { CheckButton } from "./CheckButton";
-import { timeAgo } from "../lib/timeAgo";
-import { feeds, toggleEntryRead } from "../stores/feeds.store";
+import type { FeedEntry } from "$lib/api";
+import { CachedThumbnail } from "$components/CachedThumbnail/CachedThumbnail";
+import { CheckButton } from "$components/CheckButton/CheckButton";
+import { timeAgo } from "$lib/timeAgo";
+import { feeds, toggleEntryRead } from "$stores/feeds.store";
 import styles from "./gridView.module.css";
 
 interface GridEntry {

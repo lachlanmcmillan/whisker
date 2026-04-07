@@ -1,6 +1,6 @@
 import { createStore, reconcile } from "solid-js/store";
-import type { Feed } from "../lib/api";
-import { fetchFeeds, updateEntry } from "../lib/api";
+import type { Feed } from "$lib/api";
+import { fetchFeeds, updateEntry } from "$lib/api";
 
 const [feeds, setFeeds] = createStore<Feed[]>([]);
 

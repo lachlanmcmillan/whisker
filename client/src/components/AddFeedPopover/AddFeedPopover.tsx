@@ -1,7 +1,7 @@
 import { createSignal, Show } from "solid-js";
-import { Popover } from "./Popover";
-import { Button } from "./Button";
-import { addFeed } from "../lib/api";
+import { Popover } from "$components/Popover/Popover";
+import { Button } from "$components/Button/Button";
+import { addFeed } from "$lib/api";
 import styles from "./addFeedPopover.module.css";
 
 interface AddFeedPopoverProps {

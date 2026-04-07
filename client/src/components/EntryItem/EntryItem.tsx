@@ -1,12 +1,12 @@
 import { createSignal, Show } from "solid-js";
 import DOMPurify from "dompurify";
-import type { FeedEntry } from "../lib/api";
-import { Button } from "./Button";
-import { CachedThumbnail } from "./CachedThumbnail";
-import { CheckButton } from "./CheckButton";
-import { Link } from "./Link";
-import { Title } from "./Title";
-import { toggleEntryRead } from "../stores/feeds.store";
+import type { FeedEntry } from "$lib/api";
+import { Button } from "$components/Button/Button";
+import { CachedThumbnail } from "$components/CachedThumbnail/CachedThumbnail";
+import { CheckButton } from "$components/CheckButton/CheckButton";
+import { Link } from "$components/Link/Link";
+import { Title } from "$components/Title/Title";
+import { toggleEntryRead } from "$stores/feeds.store";
 import styles from "./entryItem.module.css";
 
 export function EntryItem(props: { entry: FeedEntry }) {
