@@ -17,35 +17,15 @@ const tarball = `/tmp/whisker-server-${sha}.tar.gz`;
 const ssh = (cmd: string) => $`ssh ${host} ${cmd}`.text();
 
 async function uploadFile(localPath: string, remoteTarget: string) {
-  const [remoteHost, remotePath] = remoteTarget.split(":");
-  const totalBytes = Bun.file(localPath).size;
-  const totalMB = (totalBytes / 1024 / 1024).toFixed(1);
+  const totalMB = (Bun.file(localPath).size / 1024 / 1024).toFixed(1);
   step(`Uploading image to server (${totalMB}MB)...`);
 
-  const cat = Bun.spawn(["cat", localPath], { stdout: "pipe" });
-  const sshUpload = Bun.spawn(["ssh", remoteHost, `cat > ${remotePath}`], {
-    stdin: "pipe",
+  const proc = Bun.spawnSync(["scp", "-o", "LogLevel=ERROR", localPath, remoteTarget], {
     stdout: "inherit",
     stderr: "inherit",
+    stdin: "inherit",
   });
-
-  let uploaded = 0;
-  const reader = cat.stdout.getReader();
-  while (true) {
-    const { done: eof, value } = await reader.read();
-    if (eof) break;
-    sshUpload.stdin.write(value);
-    uploaded += value.byteLength;
-    const pct = ((uploaded / totalBytes) * 100).toFixed(0);
-    const upMB = (uploaded / 1024 / 1024).toFixed(1);
-    process.stdout.write(
-      `\r  ${chalk.dim(`${upMB}MB / ${totalMB}MB (${pct}%)`)}`
-    );
-  }
-  await sshUpload.stdin.end();
-  const exitCode = await sshUpload.exited;
-  process.stdout.write("\r" + " ".repeat(40) + "\r");
-  if (exitCode !== 0) {
+  if (proc.exitCode !== 0) {
     console.error(chalk.red("✗"), "Upload failed");
     process.exit(1);
   }
@@ -67,29 +47,38 @@ step(`Building Docker image ${chalk.bold(image)}...`);
 await $`docker build -t ${image} -f ./server/Dockerfile .`;
 done("Image built");
 
-step("Saving image...");
+step(`Saving image to ${chalk.bold(tarball)}...`);
 await $`docker save ${image} | gzip > ${tarball}`;
-done("Image saved");
+done(`Image saved (${(Bun.file(tarball).size / 1024 / 1024).toFixed(1)}MB)`);
 
 await uploadFile(tarball, `${host}:${tarball}`);
 done("Image uploaded");
 
-step("Loading image on server...");
+step(`Loading image on ${chalk.bold(host)}...`);
 await ssh(`docker load -i ${tarball}`);
 done("Image loaded");
 
-step("Stopping existing container...");
+step(`Stopping existing container ${chalk.bold(container)}...`);
 await ssh(`docker stop ${container} 2>/dev/null || true`);
 await ssh(`docker rm ${container} 2>/dev/null || true`);
 done("Container stopped");
 
-step("Starting new container...");
+step(`Starting container ${chalk.bold(container)} on port ${chalk.bold(remotePort)}...`);
 await ssh(
-  `docker run -d --name ${container} --restart unless-stopped -p ${remotePort}:3000 -v whisker-data:/data -e DB_PATH=/data/whisker.db ${image}`
+  `docker run -d --name ${container} --restart unless-stopped -p ${remotePort}:3000 -v whisker-data:/data -e DB_PATH=/data/whisker.db -e COMMIT_SHA=${sha} ${image}`
 );
 done("Container started");
 
-step("Cleaning up...");
+step("Running health check...");
+const monitor = await ssh(`curl -s http://localhost:${remotePort}/monitor`);
+const health = JSON.parse(monitor);
+if (health.commit !== sha) {
+  console.error(chalk.red("✗"), `Expected commit ${sha}, got ${health.commit}`);
+  process.exit(1);
+}
+done(`Healthy — commit ${chalk.bold(health.commit)}, uptime ${health.uptimeSeconds}s`);
+
+step(`Cleaning up ${chalk.bold(tarball)}...`);
 await ssh(`rm ${tarball}`);
 await $`rm ${tarball}`;
 done("Cleaned up");
