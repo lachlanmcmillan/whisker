@@ -150,11 +150,13 @@ const server = Bun.serve({
   },
 });
 
+const corsOrigin = process.env.DEPLOY_CORS_ORIGIN ?? "*";
+
 function corsHeaders() {
   return {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": corsOrigin,
     "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
 }
 

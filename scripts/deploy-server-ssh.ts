@@ -19,6 +19,7 @@ import chalk from "chalk";
 const host = process.env.DEPLOY_SSH_HOST;
 const remotePort = process.env.DEPLOY_SERVER_PORT ?? "3000";
 const apiKey = process.env.API_KEY;
+const corsOrigin = process.env.DEPLOY_CORS_ORIGIN;
 const container = "whisker";
 
 if (!host) {
@@ -85,9 +86,20 @@ await ssh(`docker rm ${container} 2>/dev/null || true`);
 done("Container stopped");
 
 step(`Starting container ${chalk.bold(container)} on port ${chalk.bold(remotePort)}...`);
-await ssh(
-  `docker run -d --name ${container} --restart unless-stopped -p ${remotePort}:3000 -v whisker-data:/data -e DB_PATH=/data/whisker.db -e COMMIT_SHA=${sha} -e API_KEY='${apiKey!.replace(/'/g, "'\\''")}'  ${image}`
-);
+const escapedApiKey = apiKey!.replace(/'/g, "'\\''");
+const dockerRunArgs = [
+  "docker run -d",
+  `--name ${container}`,
+  "--restart unless-stopped",
+  `-p ${remotePort}:3000`,
+  "-v whisker-data:/data",
+  "-e DB_PATH=/data/whisker.db",
+  `-e COMMIT_SHA=${sha}`,
+  `-e API_KEY='${escapedApiKey}'`,
+  ...(corsOrigin ? [`-e DEPLOY_CORS_ORIGIN='${corsOrigin}'`] : []),
+  image,
+];
+await ssh(dockerRunArgs.join(" "));
 done("Container started");
 
 step("Running health check...");
