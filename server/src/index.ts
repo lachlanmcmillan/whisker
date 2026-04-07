@@ -1,3 +1,23 @@
+const startedAt = Date.now();
+
+function formatISOWithTZ(date: Date, timeZone: string): string {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    timeZoneName: "longOffset",
+  });
+  const parts = Object.fromEntries(
+    fmt.formatToParts(date).map(p => [p.type, p.value])
+  );
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}${parts.timeZoneName?.replace("GMT", "") || "+00:00"}`;
+}
+
 import { db } from "./db";
 import { fetchFeed } from "./lib/feed/fetch";
 import {
@@ -17,6 +37,15 @@ const server = Bun.serve({
 
     if (method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders() });
+    }
+
+    // GET /monitor
+    if (method === "GET" && url.pathname === "/monitor") {
+      return json({
+        commit: process.env.COMMIT_SHA ?? "dev",
+        serverTime: formatISOWithTZ(new Date(), "Australia/Melbourne"),
+        uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
+      });
     }
 
     // GET /feeds
