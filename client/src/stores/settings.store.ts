@@ -9,7 +9,9 @@ const defaultSettings: AppSettings = {
   layout: "List",
 };
 
-export const appSettingsStore = createStore<AppSettings>(loadFromLocalStorage() ?? defaultSettings);
+export const appSettingsStore = createStore<AppSettings>(
+  loadFromLocalStorage() ?? defaultSettings
+);
 
 createEffect(() => {
   saveToLocalStorage(appSettingsStore[0]);
@@ -17,11 +19,11 @@ createEffect(() => {
 
 function saveToLocalStorage(settings: AppSettings) {
   localStorage.setItem("appSettings", JSON.stringify(settings));
-};
+}
 
 function loadFromLocalStorage(): AppSettings | undefined {
   const settings = localStorage.getItem("appSettings");
   if (settings) {
     return JSON.parse(settings) as AppSettings;
   }
-};
+}

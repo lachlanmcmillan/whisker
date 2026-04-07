@@ -29,7 +29,9 @@ interface EntryRow {
   openedAt: string | null;
 }
 
-function toFeedEntry(e: EntryRow): FeedEntry & { feedId: number; openedAt?: string } {
+function toFeedEntry(
+  e: EntryRow
+): FeedEntry & { feedId: number; openedAt?: string } {
   return {
     feedId: e.feedId,
     entryId: e.entryId,
@@ -51,11 +53,12 @@ export function readAllFeeds(): Result<(Feed & { id: number })[]> {
       .query<FeedRow, []>("SELECT * FROM feeds ORDER BY id")
       .all();
 
-    const feeds = feedRows.map((row) => {
+    const feeds = feedRows.map(row => {
       const entryRows = db
-        .query<EntryRow, [number]>(
-          "SELECT * FROM entries WHERE feedId = ? ORDER BY published DESC"
-        )
+        .query<
+          EntryRow,
+          [number]
+        >("SELECT * FROM entries WHERE feedId = ? ORDER BY published DESC")
         .all(row.id);
 
       return {
@@ -91,7 +94,8 @@ export function readFeedById(id: number): Result<FeedRow | null> {
 
 export function upsertFeed(feed: Feed): Result<number> {
   try {
-    db.query(`
+    db.query(
+      `
       INSERT INTO feeds (title, description, link, feedUrl, author, published, image, fetchedAt)
       VALUES ($title, $description, $link, $feedUrl, $author, $published, $image, $fetchedAt)
       ON CONFLICT(link) DO UPDATE SET
@@ -102,7 +106,8 @@ export function upsertFeed(feed: Feed): Result<number> {
         published = excluded.published,
         image = excluded.image,
         fetchedAt = excluded.fetchedAt
-    `).run({
+    `
+    ).run({
       $title: feed.title,
       $description: feed.description,
       $link: feed.link,
@@ -168,10 +173,11 @@ export function updateEntryOpenedAt(
   openedAt: string | null
 ): Result<void> {
   try {
-    db.run(
-      "UPDATE entries SET openedAt = ? WHERE feedId = ? AND entryId = ?",
-      [openedAt, feedId, entryId]
-    );
+    db.run("UPDATE entries SET openedAt = ? WHERE feedId = ? AND entryId = ?", [
+      openedAt,
+      feedId,
+      entryId,
+    ]);
     return ok(undefined);
   } catch (e) {
     return err("db_query_failed", e instanceof Error ? e.message : String(e));

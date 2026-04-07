@@ -24,11 +24,10 @@ export function parseAtomFeed(xml: string): Result<Feed> {
   const altLink =
     links.find((l: any) => l["@_rel"] === "alternate")?.["@_href"] ?? "";
 
-  const rawEntries = Array.isArray(feed.entry)
-    ? feed.entry
-    : feed.entry
-      ? [feed.entry]
-      : [];
+  const rawEntries =
+    Array.isArray(feed.entry) ? feed.entry
+    : feed.entry ? [feed.entry]
+    : [];
 
   return ok({
     title: feed.title,
@@ -48,8 +47,9 @@ function toISODate(dateStr: string): string {
 }
 
 function parseEntry(raw: any): FeedEntry {
-  const link = Array.isArray(raw.link)
-    ? (raw.link.find((l: any) => l["@_rel"] === "alternate")?.["@_href"] ?? "")
+  const link =
+    Array.isArray(raw.link) ?
+      (raw.link.find((l: any) => l["@_rel"] === "alternate")?.["@_href"] ?? "")
     : (raw.link?.["@_href"] ?? "");
 
   const media = raw["media:group"];

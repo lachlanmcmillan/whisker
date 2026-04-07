@@ -9,7 +9,7 @@ export function CheckButton(props: CheckButtonProps) {
   return (
     <button
       class={`${styles.checkButton} ${props.checked ? styles.checked : ""}`}
-      onClick={(e) => {
+      onClick={e => {
         e.preventDefault();
         e.stopPropagation();
         props.onClick();

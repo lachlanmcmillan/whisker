@@ -29,7 +29,11 @@ const server = Bun.serve({
     // POST /feeds { url: string }
     if (method === "POST" && url.pathname === "/feeds") {
       const body = await req.json();
-      if (!body.url) return json({ error: { code: "fetch_failed", message: "url is required" } }, 400);
+      if (!body.url)
+        return json(
+          { error: { code: "fetch_failed", message: "url is required" } },
+          400
+        );
 
       const fetchResult = await fetchFeed(body.url);
       if (fetchResult.error) return json(fetchResult, 400);
@@ -54,7 +58,11 @@ const server = Bun.serve({
 
       const feedResult = readFeedById(id);
       if (feedResult.error) return json(feedResult, 500);
-      if (!feedResult.data) return json({ error: { code: "feed_not_found", message: "Feed not found" } }, 404);
+      if (!feedResult.data)
+        return json(
+          { error: { code: "feed_not_found", message: "Feed not found" } },
+          404
+        );
 
       const feedUrl = feedResult.data.feedUrl || feedResult.data.link;
       const fetchResult = await fetchFeed(feedUrl);
@@ -85,14 +93,18 @@ const server = Bun.serve({
     // POST /query { sql: string } — run arbitrary SQL (for DB explorer)
     if (method === "POST" && url.pathname === "/query") {
       const body = await req.json();
-      if (!body.sql) return json(err("db_query_failed", "sql is required"), 400);
+      if (!body.sql)
+        return json(err("db_query_failed", "sql is required"), 400);
 
       try {
         const stmt = db.query(body.sql);
         const rows = stmt.all();
         return json(ok(rows));
       } catch (e) {
-        return json(err("db_query_failed", e instanceof Error ? e.message : String(e)), 400);
+        return json(
+          err("db_query_failed", e instanceof Error ? e.message : String(e)),
+          400
+        );
       }
     }
 

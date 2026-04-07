@@ -11,7 +11,9 @@ interface GridEntry {
   feedTitle: string;
 }
 
-function flattenAndSort(feeds: readonly { title: string; entries: readonly FeedEntry[] }[]): GridEntry[] {
+function flattenAndSort(
+  feeds: readonly { title: string; entries: readonly FeedEntry[] }[]
+): GridEntry[] {
   const items: GridEntry[] = [];
   for (const feed of feeds) {
     for (const entry of feed.entries) {
@@ -32,20 +34,31 @@ export function GridView() {
   return (
     <ul class={styles.grid}>
       <For each={items()}>
-        {(item) => (
-          <li class={styles.item} data-entry-id={item.entry.entryId} data-opened-at={item.entry.openedAt}>
+        {item => (
+          <li
+            class={styles.item}
+            data-entry-id={item.entry.entryId}
+            data-opened-at={item.entry.openedAt}
+          >
             <CheckButton
               checked={!!item.entry.openedAt}
               onClick={() => {
                 if (!item.entry.feedId) return;
-                toggleEntryRead(item.entry.feedId, item.entry.entryId, !!item.entry.openedAt);
+                toggleEntryRead(
+                  item.entry.feedId,
+                  item.entry.entryId,
+                  !!item.entry.openedAt
+                );
               }}
             />
             <a
               href={item.entry.link}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => item.entry.feedId && toggleEntryRead(item.entry.feedId, item.entry.entryId, false)}
+              onClick={() =>
+                item.entry.feedId &&
+                toggleEntryRead(item.entry.feedId, item.entry.entryId, false)
+              }
             >
               <Show
                 when={item.entry.thumbnail}
@@ -64,7 +77,14 @@ export function GridView() {
                   href={item.entry.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => item.entry.feedId && toggleEntryRead(item.entry.feedId, item.entry.entryId, false)}
+                  onClick={() =>
+                    item.entry.feedId &&
+                    toggleEntryRead(
+                      item.entry.feedId,
+                      item.entry.entryId,
+                      false
+                    )
+                  }
                 >
                   {item.entry.title}
                 </a>

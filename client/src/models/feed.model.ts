@@ -28,7 +28,8 @@ export interface Feed {
 }
 
 export async function upsertFeed(feed: Feed): AsyncResult<number> {
-  const insertResult = await sql`INSERT INTO feeds (title, description, link, feedUrl, author, published, image, fetchedAt)
+  const insertResult =
+    await sql`INSERT INTO feeds (title, description, link, feedUrl, author, published, image, fetchedAt)
     VALUES (${feed.title}, ${feed.description}, ${feed.link}, ${feed.feedUrl}, ${feed.author}, ${feed.published}, ${feed.image ?? null}, ${feed.fetchedAt ?? null})
     ON CONFLICT(link) DO UPDATE SET
       title = excluded.title,
@@ -40,7 +41,9 @@ export async function upsertFeed(feed: Feed): AsyncResult<number> {
       fetchedAt = excluded.fetchedAt`;
   if (insertResult.error) return insertResult;
 
-  const idResult = await sql<{ id: number }>`SELECT id FROM feeds WHERE link = ${feed.link}`;
+  const idResult = await sql<{
+    id: number;
+  }>`SELECT id FROM feeds WHERE link = ${feed.link}`;
   if (idResult.error) return idResult;
 
   const feedId = idResult.data[0].id;
@@ -53,7 +56,10 @@ export async function upsertFeed(feed: Feed): AsyncResult<number> {
   return ok(feedId);
 }
 
-async function upsertEntry(feedId: number, entry: FeedEntry): AsyncResult<void> {
+async function upsertEntry(
+  feedId: number,
+  entry: FeedEntry
+): AsyncResult<void> {
   const result = await sql`
     INSERT INTO entries (feedId, entryId, title, link, author, published, updated, description, thumbnail, content)
          VALUES (${feedId}, ${entry.entryId}, ${entry.title}, ${entry.link}, ${entry.author}, ${entry.published}, ${entry.updated ?? null}, ${entry.description}, ${entry.thumbnail ?? null}, ${entry.content ?? null})
@@ -153,7 +159,8 @@ export async function readAllFeeds(): AsyncResult<Feed[]> {
 }
 
 export async function readFeedByLink(link: string): AsyncResult<Feed | null> {
-  const feedResult = await sql<FeedRow>`SELECT * FROM feeds WHERE link = ${link}`;
+  const feedResult =
+    await sql<FeedRow>`SELECT * FROM feeds WHERE link = ${link}`;
   if (feedResult.error) return feedResult;
   if (feedResult.data.length === 0) return ok(null);
 
@@ -180,7 +187,10 @@ export async function deleteFeed(feedId: number): AsyncResult<void> {
   return ok(undefined);
 }
 
-export async function markEntryOpened(feedId: number, entryId: string): AsyncResult<void> {
+export async function markEntryOpened(
+  feedId: number,
+  entryId: string
+): AsyncResult<void> {
   const result = await sql`
     UPDATE entries
        SET openedAt = ${new Date().toISOString()}
@@ -192,7 +202,10 @@ export async function markEntryOpened(feedId: number, entryId: string): AsyncRes
   return ok(undefined);
 }
 
-export async function clearEntryOpened(feedId: number, entryId: string): AsyncResult<void> {
+export async function clearEntryOpened(
+  feedId: number,
+  entryId: string
+): AsyncResult<void> {
   const result = await sql`
     UPDATE entries
        SET openedAt = ${null}

@@ -15,7 +15,7 @@ export function AddFeedPopover(props: AddFeedPopoverProps) {
 
   return (
     <Popover trigger="+ Add Feed">
-      {(close) => {
+      {close => {
         const handleSubmit = async (e: Event) => {
           e.preventDefault();
           const value = url().trim();
@@ -47,7 +47,7 @@ export function AddFeedPopover(props: AddFeedPopoverProps) {
               type="url"
               placeholder="https://example.com/feed.xml"
               value={url()}
-              onInput={(e) => {
+              onInput={e => {
                 setUrl(e.currentTarget.value);
                 setError(null);
               }}
@@ -55,7 +55,7 @@ export function AddFeedPopover(props: AddFeedPopoverProps) {
               autofocus
             />
             <Show when={error()}>
-              {(msg) => <p class={styles.error}>{msg()}</p>}
+              {msg => <p class={styles.error}>{msg()}</p>}
             </Show>
             <div class={styles.actions}>
               <Button type="submit" disabled={submitting()}>

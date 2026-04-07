@@ -24,7 +24,11 @@ export function EntryItem(props: { entry: FeedEntry }) {
         checked={!!props.entry.openedAt}
         onClick={() => {
           if (!props.entry.feedId) return;
-          toggleEntryRead(props.entry.feedId, props.entry.entryId, !!props.entry.openedAt);
+          toggleEntryRead(
+            props.entry.feedId,
+            props.entry.entryId,
+            !!props.entry.openedAt
+          );
         }}
       />
       <Show when={props.entry.thumbnail}>
@@ -53,10 +57,7 @@ export function EntryItem(props: { entry: FeedEntry }) {
           <p class={styles.description}>{props.entry.description}</p>
         </Show>
         <Show when={props.entry.content}>
-          <Button
-            variant="ghost"
-            onClick={() => setExpanded(!expanded())}
-          >
+          <Button variant="ghost" onClick={() => setExpanded(!expanded())}>
             {expanded() ? "show less" : "show more..."}
           </Button>
           <Show when={expanded()}>

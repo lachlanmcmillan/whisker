@@ -65,13 +65,13 @@ function App() {
           <nav class={styles.tabs}>
             <Button
               active={appSettings.layout === "List"}
-              onClick={() => setAppSettings('layout', "List")}
+              onClick={() => setAppSettings("layout", "List")}
             >
               List
             </Button>
             <Button
               active={appSettings.layout === "Grid"}
-              onClick={() => setAppSettings('layout', "Grid")}
+              onClick={() => setAppSettings("layout", "Grid")}
             >
               Grid
             </Button>
@@ -83,14 +83,17 @@ function App() {
             when={appSettings.layout === "Grid"}
             fallback={
               <Show when={feeds[activeIndex()]}>
-                {(feed) => (
+                {feed => (
                   <>
                     <nav class={styles.feedTabs}>
                       <For each={[...feeds]}>
                         {(f, i) => (
                           <Button
                             active={i() === activeIndex()}
-                            onClick={() => { setActiveIndex(i()); setRefreshError(null); }}
+                            onClick={() => {
+                              setActiveIndex(i());
+                              setRefreshError(null);
+                            }}
                           >
                             {f.title}
                           </Button>
@@ -107,10 +110,7 @@ function App() {
                       <Show when={feed().description}>
                         <p>{feed().description}</p>
                       </Show>
-                      <Button
-                        onClick={handleRefresh}
-                        disabled={refreshing()}
-                      >
+                      <Button onClick={handleRefresh} disabled={refreshing()}>
                         {refreshing() ? "Refreshing..." : "Refresh"}
                       </Button>
                       <Show when={refreshError()}>
@@ -120,7 +120,7 @@ function App() {
 
                     <ul class={styles.entries}>
                       <For each={feed().entries}>
-                        {(entry) => <EntryItem entry={entry} />}
+                        {entry => <EntryItem entry={entry} />}
                       </For>
                     </ul>
                   </>

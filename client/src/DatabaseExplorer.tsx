@@ -38,7 +38,9 @@ export function DatabaseExplorer() {
       const infos: TableInfo[] = [];
       for (const row of tableRows) {
         const name = row.name as string;
-        const countRows = await runQuery(`SELECT COUNT(*) as count FROM "${name}"`);
+        const countRows = await runQuery(
+          `SELECT COUNT(*) as count FROM "${name}"`
+        );
         infos.push({ name, count: countRows[0]?.count as number });
       }
       setTables(infos);
@@ -47,7 +49,11 @@ export function DatabaseExplorer() {
     }
   }
 
-  function buildTableQuery(name: string, col: string | null, dir: "ASC" | "DESC") {
+  function buildTableQuery(
+    name: string,
+    col: string | null,
+    dir: "ASC" | "DESC"
+  ) {
     let q = `SELECT * FROM "${name}"`;
     if (col) q += ` ORDER BY "${col}" ${dir}`;
     q += " LIMIT 200";
@@ -112,7 +118,7 @@ export function DatabaseExplorer() {
 
       <div class={styles.tables}>
         <For each={tables()}>
-          {(t) => (
+          {t => (
             <Button
               active={selectedTable() === t.name}
               onClick={() => selectTable(t.name)}
@@ -128,9 +134,9 @@ export function DatabaseExplorer() {
         <textarea
           class={styles.sqlInput}
           value={sqlText()}
-          onInput={(e) => setSqlText(e.currentTarget.value)}
+          onInput={e => setSqlText(e.currentTarget.value)}
           placeholder="Enter SQL query..."
-          onKeyDown={(e) => {
+          onKeyDown={e => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
               runSql();
             }
@@ -160,7 +166,7 @@ export function DatabaseExplorer() {
           <thead>
             <tr>
               <For each={columns()}>
-                {(col) => (
+                {col => (
                   <th
                     class={selectedTable() ? styles.sortable : undefined}
                     onClick={() => selectedTable() && sortByColumn(col)}
@@ -176,10 +182,10 @@ export function DatabaseExplorer() {
           </thead>
           <tbody>
             <For each={rows()}>
-              {(row) => (
+              {row => (
                 <tr>
                   <For each={columns()}>
-                    {(col) => <td>{String(row[col] ?? "")}</td>}
+                    {col => <td>{String(row[col] ?? "")}</td>}
                   </For>
                 </tr>
               )}

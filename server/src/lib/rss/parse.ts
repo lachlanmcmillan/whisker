@@ -20,11 +20,10 @@ export function parseRssFeed(xml: string): Result<Feed> {
 
   const channel = doc.rss.channel;
 
-  const rawItems = Array.isArray(channel.item)
-    ? channel.item
-    : channel.item
-      ? [channel.item]
-      : [];
+  const rawItems =
+    Array.isArray(channel.item) ? channel.item
+    : channel.item ? [channel.item]
+    : [];
 
   return ok({
     title: channel.title,
