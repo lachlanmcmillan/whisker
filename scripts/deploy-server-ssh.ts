@@ -18,10 +18,16 @@ import chalk from "chalk";
 
 const host = process.env.DEPLOY_SSH_HOST;
 const remotePort = process.env.DEPLOY_SERVER_PORT ?? "3000";
+const apiKey = process.env.API_KEY;
 const container = "whisker";
 
 if (!host) {
   console.error(chalk.red("DEPLOY_SSH_HOST is required (e.g. ubuntu@1.2.3.4)"));
+  process.exit(1);
+}
+
+if (!apiKey) {
+  console.error(chalk.red("API_KEY is required"));
   process.exit(1);
 }
 
@@ -80,7 +86,7 @@ done("Container stopped");
 
 step(`Starting container ${chalk.bold(container)} on port ${chalk.bold(remotePort)}...`);
 await ssh(
-  `docker run -d --name ${container} --restart unless-stopped -p ${remotePort}:3000 -v whisker-data:/data -e DB_PATH=/data/whisker.db -e COMMIT_SHA=${sha} ${image}`
+  `docker run -d --name ${container} --restart unless-stopped -p ${remotePort}:3000 -v whisker-data:/data -e DB_PATH=/data/whisker.db -e COMMIT_SHA=${sha} -e API_KEY='${apiKey!.replace(/'/g, "'\\''")}'  ${image}`
 );
 done("Container started");
 

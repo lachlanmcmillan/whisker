@@ -44,3 +44,43 @@ The architecture is local-first: SQLite lives in the browser via OPFS, which is 
 ### Open question
 
 How the sync data travels between devices. The "relay" could be anything that can store and retrieve a blob: a cloud folder (iCloud Drive, Dropbox), a GitHub repo/gist, an S3 bucket, a tiny API on a free tier, or something else entirely. The transport is an open design decision.
+
+## Deploy
+
+### Prerequisites
+
+- An EC2 instance (or any Ubuntu server) with SSH access
+- A domain with an A record pointing to the server (e.g. `api.whisker.lmcmillan.dev`)
+- Ports 22, 80, and 443 open in the server's security group
+  - 80: required for Let's Encrypt certificate challenges
+  - 443: serves HTTPS traffic
+  - 22: SSH access
+
+### Server setup
+
+Installs Docker and Caddy on the server. Caddy acts as a reverse proxy, terminating HTTPS and forwarding requests to the Docker container. Certificates are provisioned automatically via Let's Encrypt.
+
+```sh
+bun run setup-server
+```
+
+### Deploy the server
+
+Builds a Docker image locally, uploads it to the server via scp, and starts the container. Runs a health check against `/monitor` to verify the deploy succeeded.
+
+```sh
+bun run deploy-server-ssh
+```
+
+### Deploy the client
+
+The client is deployed to GitHub Pages via a GitHub Actions workflow on push to `main`. Set `VITE_API_URL` in the repo's GitHub Actions variables to point to the server (e.g. `https://api.whisker.lmcmillan.dev`).
+
+### Environment variables
+
+Set these in `.env.local` at the repo root:
+
+| Variable | Description | Example |
+|---|---|---|
+| `DEPLOY_SSH_HOST` | SSH destination for the server | `ubuntu@1.2.3.4` |
+| `DEPLOY_SERVER_PORT` | Port the container exposes on the server | `8022` |

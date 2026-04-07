@@ -5,6 +5,9 @@ export const ErrorCodes = {
   fetch_failed: "Failed to fetch URL",
   parse_failed: "Failed to parse feed",
 
+  // auth
+  unauthorized: "Invalid or missing API key",
+
   // database
   db_query_failed: "Database query failed",
 } as const;

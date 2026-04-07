@@ -39,13 +39,22 @@ const server = Bun.serve({
       return new Response(null, { headers: corsHeaders() });
     }
 
-    // GET /monitor
+    // GET /monitor — unauthenticated
     if (method === "GET" && url.pathname === "/monitor") {
       return json({
         commit: process.env.COMMIT_SHA ?? "dev",
         serverTime: formatISOWithTZ(new Date(), "Australia/Melbourne"),
         uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
       });
+    }
+
+    // Auth check — everything below requires a valid API key
+    const apiKey = process.env.API_KEY;
+    if (apiKey) {
+      const auth = req.headers.get("Authorization");
+      if (auth !== `Bearer ${apiKey}`) {
+        return json(err("unauthorized", "Invalid or missing API key"), 401);
+      }
     }
 
     // GET /feeds

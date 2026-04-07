@@ -4,19 +4,23 @@ import { Button } from "$components/Button/Button";
 import { Title } from "$components/Title/Title";
 import { AddFeedPopover } from "$components/AddFeedPopover/AddFeedPopover";
 import { GridView } from "$components/GridView/GridView";
+import { LoginForm } from "$components/LoginForm/LoginForm";
 import { DatabaseExplorer } from "./DatabaseExplorer";
-import { refreshFeed } from "$lib/api";
+import { getApiKey, setOnUnauthorized, refreshFeed } from "$lib/api";
 import { feeds, loadFeeds } from "$stores/feeds.store";
 import { appSettingsStore } from "$stores/settings.store";
 import styles from "./App.module.css";
 
 function App() {
+  const [authenticated, setAuthenticated] = createSignal(!!getApiKey());
   const [activeIndex, setActiveIndex] = createSignal(-1);
   const [loading, setLoading] = createSignal(true);
   const [refreshing, setRefreshing] = createSignal(false);
   const [refreshError, setRefreshError] = createSignal<string | null>(null);
   const [view, setView] = createSignal<"feeds" | "explorer">("feeds");
   const [appSettings, setAppSettings] = appSettingsStore;
+
+  setOnUnauthorized(() => setAuthenticated(false));
 
   const allEntriesSorted = () =>
     [...feeds]
@@ -46,12 +50,21 @@ function App() {
     setRefreshing(false);
   };
 
+  const handleLogin = async () => {
+    setAuthenticated(true);
+    setLoading(true);
+    await loadFeeds();
+    setLoading(false);
+  };
+
   onMount(async () => {
+    if (!authenticated()) return;
     await loadFeeds();
     setLoading(false);
   });
 
   return (
+    <Show when={authenticated()} fallback={<LoginForm onLogin={handleLogin} />}>
     <Show
       when={!loading()}
       fallback={<div class={styles.feed}>Loading feeds...</div>}
@@ -155,6 +168,7 @@ function App() {
           </Show>
         </div>
       </Show>
+    </Show>
     </Show>
   );
 }
