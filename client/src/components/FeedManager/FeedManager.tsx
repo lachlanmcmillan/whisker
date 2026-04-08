@@ -8,8 +8,22 @@ import styles from "./FeedManager.module.css";
 export function FeedManager() {
   const [editingFeed, setEditingFeed] = createSignal<Feed | null>(null);
 
+  function exportFeedList() {
+    const urls = feeds.map(f => f.feedUrl).join("\n");
+    const blob = new Blob([urls], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "feeds.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <>
+      <div class={styles.toolbar}>
+        <Button onClick={exportFeedList}>Export feed list</Button>
+      </div>
       <table class={styles.table}>
         <thead>
           <tr>
