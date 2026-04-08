@@ -106,6 +106,15 @@ const server = Bun.serve({
       return json(fetchResult);
     }
 
+    // PATCH /feeds/:id — update feed metadata
+    if (method === "PATCH" && url.pathname.match(/^\/feeds\/\d+$/)) {
+      const id = parseInt(url.pathname.split("/")[2]);
+      const body = await req.json();
+      const result = feeds.update(id, body);
+      if (result.error) return json(result, 500);
+      return json(result);
+    }
+
     // PATCH /entries/:feedId/:entryId
     if (method === "PATCH" && url.pathname.match(/^\/entries\/\d+\/[^/]+$/)) {
       const parts = url.pathname.split("/");
