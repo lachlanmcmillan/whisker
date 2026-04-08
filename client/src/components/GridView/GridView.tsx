@@ -8,6 +8,7 @@ import { timeAgo } from "$lib/timeAgo";
 import { ArchiveButton } from "$components/ArchiveButton/ArchiveButton";
 import { StarButton } from "$components/StarButton/StarButton";
 import { feeds, toggleEntryRead, toggleEntryArchived, toggleEntryStarred } from "$stores/feeds.store";
+import { appSettingsStore } from "$stores/settings.store";
 import styles from "./gridView.module.css";
 
 interface GridEntry {
@@ -36,6 +37,7 @@ function flattenAndSort(
 
 export function GridView() {
   const [selectedFeedId, setSelectedFeedId] = createSignal<number | null>(null);
+  const [appSettings, setAppSettings] = appSettingsStore;
   const items = () => flattenAndSort(feeds, selectedFeedId());
   const selectedFeed = createMemo(() => {
     const id = selectedFeedId();
@@ -44,24 +46,40 @@ export function GridView() {
 
   return (
     <>
-      <nav class={styles.feedTabs}>
-        <Button
-          active={selectedFeedId() === null}
-          onClick={() => setSelectedFeedId(null)}
-        >
-          All
-        </Button>
-        <For each={[...feeds]}>
-          {f => (
-            <Button
-              active={selectedFeedId() === f.id}
-              onClick={() => setSelectedFeedId(f.id)}
-            >
-              {f.title}
-            </Button>
-          )}
-        </For>
-      </nav>
+      <div class={styles.toolbar}>
+        <nav class={styles.feedTabs}>
+          <Button
+            active={selectedFeedId() === null}
+            onClick={() => setSelectedFeedId(null)}
+          >
+            All
+          </Button>
+          <For each={[...feeds]}>
+            {f => (
+              <Button
+                active={selectedFeedId() === f.id}
+                onClick={() => setSelectedFeedId(f.id)}
+              >
+                {f.title}
+              </Button>
+            )}
+          </For>
+        </nav>
+        <div class={styles.layoutToggle}>
+          <Button
+            active={appSettings.layout === "List"}
+            onClick={() => setAppSettings("layout", "List")}
+          >
+            List
+          </Button>
+          <Button
+            active={appSettings.layout === "Grid"}
+            onClick={() => setAppSettings("layout", "Grid")}
+          >
+            Grid
+          </Button>
+        </div>
+      </div>
       <Show when={selectedFeed()}>
         {feed => <FeedHeader feed={feed()} />}
       </Show>

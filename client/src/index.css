@@ -1,11 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&display=swap');
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --bg-primary: #1a1a1f;
+  --bg-surface: #222228;
+  --bg-hover: #2a2a32;
+  --text-primary: #e8e6e1;
+  --text-secondary: #9a9890;
+  --text-muted: #6a6860;
+  --accent: #c8a46e;
+  --accent-dim: rgba(200, 164, 110, 0.12);
+  --border: #2e2e36;
+  --radius: 8px;
+
+  font-family: var(--font-body);
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: dark;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;

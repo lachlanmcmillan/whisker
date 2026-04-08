@@ -1,19 +1,24 @@
 .entry {
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 0.5rem;
   text-align: left;
   display: flex;
   gap: 1rem;
   position: relative;
+  transition: background 0.15s ease;
+  border-radius: var(--radius);
+}
 
-  &:hover > button {
-    opacity: 1;
-  }
+.entry:hover {
+  background: var(--bg-hover);
+}
+
+.entry:hover > button {
+  opacity: 1;
 }
 
 .entry img {
-  border-radius: 4px;
+  border-radius: 6px;
   flex-shrink: 0;
 }
 
@@ -22,15 +27,15 @@
 }
 
 .meta {
-  color: #888;
-  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
   margin: 0.25rem 0;
 }
 
 .description {
   font-size: 0.85rem;
   white-space: pre-wrap;
-  color: #999;
+  color: var(--text-secondary);
   margin: 0.5rem 0 0;
   max-height: 6rem;
   overflow: hidden;
@@ -40,12 +45,12 @@
   margin-top: 0.75rem;
   font-size: 0.9rem;
   line-height: 1.6;
-  color: #ccc;
+  color: var(--text-primary);
   overflow-wrap: break-word;
 }
 
 .content img {
   max-width: 100%;
   height: auto;
-  border-radius: 4px;
+  border-radius: 6px;
 }

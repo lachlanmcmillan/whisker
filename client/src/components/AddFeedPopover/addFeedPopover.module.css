@@ -3,20 +3,20 @@
   padding: 0.5rem;
   font-size: 0.9rem;
   font-family: inherit;
-  background: #111;
-  border: 1px solid #333;
-  border-radius: 6px;
-  color: #fff;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
   box-sizing: border-box;
 }
 
 .input:focus {
   outline: none;
-  border-color: #646cff;
+  border-color: var(--accent);
 }
 
 .error {
-  color: #e53e3e;
+  color: #d9534f;
   font-size: 0.85rem;
   margin: 0.5rem 0 0;
 }

@@ -1,7 +1,7 @@
 .explorer {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0 2rem 2rem;
 }
 
 .tables {
@@ -13,7 +13,7 @@
 
 .tableInfo {
   font-size: 0.8rem;
-  color: #888;
+  color: var(--text-muted);
   margin-left: 0.25rem;
 }
 
@@ -28,7 +28,7 @@
 
 .dataTable th,
 .dataTable td {
-  border: 1px solid #333;
+  border: 1px solid var(--border);
   padding: 0.4rem 0.6rem;
   text-align: left;
   white-space: nowrap;
@@ -38,8 +38,8 @@
 }
 
 .dataTable th {
-  background: #1a1a1a;
-  color: #aaa;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
   font-weight: 600;
   position: sticky;
   top: 0;
@@ -51,27 +51,27 @@
 }
 
 .sortable:hover {
-  color: #ddd;
+  color: var(--text-primary);
 }
 
 .dataTable tr:hover td {
-  background: #1a1a2a;
+  background: var(--bg-hover);
 }
 
 .sqlSection {
   margin-top: 2rem;
   margin-bottom: 1.5rem;
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--border);
   padding-top: 1.5rem;
 }
 
 .sqlInput {
   width: 100%;
   min-height: 80px;
-  background: #111;
-  color: #eee;
-  border: 1px solid #333;
-  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   padding: 0.6rem;
   font-family: monospace;
   font-size: 0.85rem;
@@ -81,17 +81,17 @@
 
 .sqlInput:focus {
   outline: none;
-  border-color: #555;
+  border-color: var(--accent);
 }
 
 .error {
-  color: #f66;
+  color: #d9534f;
   font-size: 0.85rem;
   margin: 0.5rem 0;
 }
 
 .empty {
-  color: #888;
+  color: var(--text-muted);
   font-style: italic;
   margin: 1rem 0;
 }

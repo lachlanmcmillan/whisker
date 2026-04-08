@@ -1,4 +1,4 @@
-import styles from "./checkButton.module.css";
+import { ActionButton } from "$components/ActionButton/ActionButton";
 
 interface CheckButtonProps {
   checked: boolean;
@@ -7,16 +7,14 @@ interface CheckButtonProps {
 
 export function CheckButton(props: CheckButtonProps) {
   return (
-    <button
-      class={`${styles.checkButton} ${props.checked ? styles.checked : ""}`}
-      onClick={e => {
-        e.preventDefault();
-        e.stopPropagation();
-        props.onClick();
-      }}
+    <ActionButton
+      active={props.checked}
+      onClick={props.onClick}
       title={props.checked ? "Mark as unread" : "Mark as read"}
+      color="#6c6"
+      right="0.5rem"
     >
       {"\u2713"}
-    </button>
+    </ActionButton>
   );
 }

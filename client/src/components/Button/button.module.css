@@ -1,32 +1,37 @@
 .button {
-  border-radius: 6px;
-  border: 1px solid #333;
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem;
   font-weight: 500;
-  font-family: inherit;
-  background: none;
-  color: #888;
+  font-family: var(--font-body);
+  background: transparent;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .button:hover {
-  border-color: #646cff;
+  border-color: var(--accent);
+  color: var(--text-primary);
+  background: var(--accent-dim);
 }
 
 .active {
-  color: #fff;
-  border-color: #646cff;
-  background: #646cff22;
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
 }
 
 .ghost {
   border: none;
   padding: 0;
   background: none;
-  color: #646cff;
-  font-size: 0.85rem;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-family: var(--font-body);
+  cursor: pointer;
 }
 
 .ghost:hover {

@@ -1,14 +1,30 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-top: 1.5rem;
+}
+
 .feedTabs {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 0.25rem;
   flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.layoutToggle {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  margin-left: 1rem;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
+  gap: 1.25rem;
   padding: 0;
   list-style: none;
 }
@@ -17,14 +33,15 @@
   display: flex;
   flex-direction: column;
   padding: 0.5rem;
-  border-radius: 10px;
+  border-radius: var(--radius);
   position: relative;
+  transition: background 0.15s ease;
 
   &[data-opened-at] {
-    transform: grayscale(100%);
+    filter: grayscale(100%);
     opacity: 0.5;
     &:hover {
-      transform: grayscale(0%);
+      filter: grayscale(0%);
       opacity: 1;
     }
   }
@@ -35,22 +52,22 @@
 }
 
 .item:hover {
-  background-color: #2a3a20;
+  background-color: var(--bg-hover);
 }
 
 .thumbnail {
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  border-radius: 8px;
-  background: #1a1a1a;
+  border-radius: 6px;
+  background: var(--bg-primary);
 }
 
 .placeholder {
   width: 100%;
   aspect-ratio: 16 / 9;
-  border-radius: 8px;
-  background: #1a1a1a;
+  border-radius: 6px;
+  background: var(--bg-primary);
 }
 
 .info {
@@ -58,9 +75,9 @@
 }
 
 .title {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 500;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -74,24 +91,24 @@
 }
 
 .title a:hover {
-  text-decoration: underline;
+  color: var(--accent);
 }
 
 .feedName {
-  font-size: 0.8rem;
-  color: #888;
+  font-size: 0.78rem;
+  color: var(--text-muted);
   margin: 0.2rem 0 0;
 }
 
 .time {
-  font-size: 0.8rem;
-  color: #888;
+  font-size: 0.78rem;
+  color: var(--text-muted);
   margin: 0;
 }
 
 .description {
-  font-size: 0.8rem;
-  color: #aaa;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
   margin: 0.3rem 0 0;
   line-height: 1.5;
   display: -webkit-box;

@@ -1,11 +1,12 @@
 .feedHeader {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .feedHeader p {
-  color: #888;
+  color: var(--text-secondary);
 }
 
 .meta {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
 }

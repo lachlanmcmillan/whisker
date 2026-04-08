@@ -1,4 +1,4 @@
-import styles from "./archiveButton.module.css";
+import { ActionButton } from "$components/ActionButton/ActionButton";
 
 interface ArchiveButtonProps {
   archived: boolean;
@@ -7,14 +7,12 @@ interface ArchiveButtonProps {
 
 export function ArchiveButton(props: ArchiveButtonProps) {
   return (
-    <button
-      class={`${styles.archiveButton} ${props.archived ? styles.archived : ""}`}
-      onClick={e => {
-        e.preventDefault();
-        e.stopPropagation();
-        props.onClick();
-      }}
+    <ActionButton
+      active={props.archived}
+      onClick={props.onClick}
       title={props.archived ? "Unarchive" : "Archive"}
+      color="#f90"
+      right="2.75rem"
     >
       <svg
         width="18"
@@ -30,6 +28,6 @@ export function ArchiveButton(props: ArchiveButtonProps) {
         <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
         <path d="M10 12h4" />
       </svg>
-    </button>
+    </ActionButton>
   );
 }

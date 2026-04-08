@@ -70,74 +70,77 @@ function App() {
       when={!loading()}
       fallback={<div class={styles.feed}>Loading feeds...</div>}
     >
+      <header class={styles.header}>
+        <h1 class={styles.brand}>Whisker</h1>
+        <div class={styles.headerActions}>
+          <Show when={view() !== "feeds"}>
+            <Button onClick={() => setView("feeds")}>Feeds</Button>
+          </Show>
+          <Show when={view() === "feeds"}>
+            <AddFeedPopover onAdded={handleFeedAdded} />
+            <Button onClick={() => setView("manager")}>Manage</Button>
+            <span class={styles.divider} />
+            <Button onClick={() => setView("explorer")}>DB Explorer</Button>
+          </Show>
+        </div>
+      </header>
+
       <Show when={view() === "manager"}>
         <div class={styles.feed}>
-          <nav class={styles.tabs}>
-            <Button onClick={() => setView("feeds")}>Back to Feeds</Button>
-          </nav>
           <FeedManager />
         </div>
       </Show>
 
       <Show when={view() === "explorer"}>
-        <div>
-          <div class={styles.feed}>
-            <nav class={styles.tabs}>
-              <Button onClick={() => setView("feeds")}>Back to Feeds</Button>
-            </nav>
-          </div>
-          <DatabaseExplorer />
-        </div>
+        <DatabaseExplorer />
       </Show>
 
       <Show when={view() === "feeds"}>
         <div class={styles.feed}>
-          <nav class={styles.tabs}>
-            <Button
-              active={appSettings.layout === "List"}
-              onClick={() => setAppSettings("layout", "List")}
-            >
-              List
-            </Button>
-            <Button
-              active={appSettings.layout === "Grid"}
-              onClick={() => setAppSettings("layout", "Grid")}
-            >
-              Grid
-            </Button>
-            <AddFeedPopover onAdded={handleFeedAdded} />
-            <Button onClick={() => setView("manager")}>Feed Manager</Button>
-            <Button onClick={() => setView("explorer")}>DB Explorer</Button>
-          </nav>
-
           <Show
             when={appSettings.layout === "Grid"}
             fallback={
               <>
-                <nav class={styles.feedTabs}>
-                  <Button
-                    active={activeIndex() === -1}
-                    onClick={() => {
-                      setActiveIndex(-1);
-                      setRefreshError(null);
-                    }}
-                  >
-                    All
-                  </Button>
-                  <For each={[...feeds]}>
-                    {(f, i) => (
-                      <Button
-                        active={i() === activeIndex()}
-                        onClick={() => {
-                          setActiveIndex(i());
-                          setRefreshError(null);
-                        }}
-                      >
-                        {f.title}
-                      </Button>
-                    )}
-                  </For>
-                </nav>
+                <div class={styles.toolbar}>
+                  <nav class={styles.feedTabs}>
+                    <Button
+                      active={activeIndex() === -1}
+                      onClick={() => {
+                        setActiveIndex(-1);
+                        setRefreshError(null);
+                      }}
+                    >
+                      All
+                    </Button>
+                    <For each={[...feeds]}>
+                      {(f, i) => (
+                        <Button
+                          active={i() === activeIndex()}
+                          onClick={() => {
+                            setActiveIndex(i());
+                            setRefreshError(null);
+                          }}
+                        >
+                          {f.title}
+                        </Button>
+                      )}
+                    </For>
+                  </nav>
+                  <div class={styles.layoutToggle}>
+                    <Button
+                      active={appSettings.layout === "List"}
+                      onClick={() => setAppSettings("layout", "List")}
+                    >
+                      List
+                    </Button>
+                    <Button
+                      active={appSettings.layout === "Grid"}
+                      onClick={() => setAppSettings("layout", "Grid")}
+                    >
+                      Grid
+                    </Button>
+                  </div>
+                </div>
 
                 <Show when={activeIndex() >= 0 && feeds[activeIndex()]}>
                   {feed => (
