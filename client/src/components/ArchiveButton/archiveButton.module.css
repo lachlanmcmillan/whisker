@@ -1,7 +1,7 @@
-.checkButton {
+.archiveButton {
   position: absolute;
   top: 0.5rem;
-  right: 0.5rem;
+  right: 2.75rem;
   width: 32px;
   height: 32px;
   border-radius: 4px;
@@ -15,20 +15,18 @@
   padding: 0;
   opacity: 0;
   transition: opacity 0.15s ease, background 0.15s ease;
-  font-size: 18px;
-  line-height: 1;
 }
 
-.checkButton:hover {
+.archiveButton:hover {
   background: rgba(0, 0, 0, 0.5);
   color: #fff;
 }
 
-.checked {
+.archived {
   opacity: 1;
-  color: #6c6;
+  color: #f90;
 }
 
-.checked:hover {
-  color: #8f8;
+.archived:hover {
+  color: #fb0;
 }

@@ -5,7 +5,9 @@ import { FeedHeader } from "$components/FeedHeader/FeedHeader";
 import { CachedThumbnail } from "$components/CachedThumbnail/CachedThumbnail";
 import { CheckButton } from "$components/CheckButton/CheckButton";
 import { timeAgo } from "$lib/timeAgo";
-import { feeds, toggleEntryRead } from "$stores/feeds.store";
+import { ArchiveButton } from "$components/ArchiveButton/ArchiveButton";
+import { StarButton } from "$components/StarButton/StarButton";
+import { feeds, toggleEntryRead, toggleEntryArchived, toggleEntryStarred } from "$stores/feeds.store";
 import styles from "./gridView.module.css";
 
 interface GridEntry {
@@ -79,6 +81,28 @@ export function GridView() {
                     item.entry.feedId,
                     item.entry.entryId,
                     !!item.entry.openedAt
+                  );
+                }}
+              />
+              <ArchiveButton
+                archived={!!item.entry.archivedAt}
+                onClick={() => {
+                  if (!item.entry.feedId) return;
+                  toggleEntryArchived(
+                    item.entry.feedId,
+                    item.entry.entryId,
+                    !!item.entry.archivedAt
+                  );
+                }}
+              />
+              <StarButton
+                starred={!!item.entry.starredAt}
+                onClick={() => {
+                  if (!item.entry.feedId) return;
+                  toggleEntryStarred(
+                    item.entry.feedId,
+                    item.entry.entryId,
+                    !!item.entry.starredAt
                   );
                 }}
               />

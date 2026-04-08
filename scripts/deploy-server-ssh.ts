@@ -93,6 +93,7 @@ const dockerRunArgs = [
   `-p ${remotePort}:3000`,
   "-v whisker-data:/data",
   "-e DB_PATH=/data/whisker.db",
+  "-e NODE_ENV=production",
   `-e COMMIT_SHA=${sha}`,
   `-e API_KEY=${apiKey}`,
   ...(corsOrigin ? [`-e DEPLOY_CORS_ORIGIN=${corsOrigin}`] : []),

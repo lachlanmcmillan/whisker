@@ -1,7 +1,7 @@
-.checkButton {
+.starButton {
   position: absolute;
   top: 0.5rem;
-  right: 0.5rem;
+  right: 5rem;
   width: 32px;
   height: 32px;
   border-radius: 4px;
@@ -19,16 +19,16 @@
   line-height: 1;
 }
 
-.checkButton:hover {
+.starButton:hover {
   background: rgba(0, 0, 0, 0.5);
   color: #fff;
 }
 
-.checked {
+.starred {
   opacity: 1;
-  color: #6c6;
+  color: #fd0;
 }
 
-.checked:hover {
-  color: #8f8;
+.starred:hover {
+  color: #fe6;
 }

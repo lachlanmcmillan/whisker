@@ -29,6 +29,8 @@ export const entries = sqliteTable(
     thumbnail:   text("thumbnail"),
     content:     text("content"),
     openedAt:    text("openedAt"),
+    archivedAt:  text("archivedAt"),
+    starredAt:   text("starredAt"),
   },
   (t) => [unique().on(t.feedId, t.entryId)]
 );
