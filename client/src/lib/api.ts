@@ -47,6 +47,8 @@ export interface FeedEntry {
   thumbnail?: string;
   content?: string;
   openedAt?: string | null;
+  archivedAt?: string | null;
+  starredAt?: string | null;
 }
 
 export interface Feed {
@@ -108,14 +110,14 @@ export async function query(sql: string): Promise<Record<string, unknown>[]> {
 export async function updateEntry(
   feedId: number,
   entryId: string,
-  openedAt: string | null
+  data: Partial<Pick<FeedEntry, "openedAt" | "archivedAt" | "starredAt">>
 ): Promise<void> {
   const res = await fetch(
     `${BASE}/entries/${feedId}/${encodeURIComponent(entryId)}`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...authHeaders() },
-      body: JSON.stringify({ openedAt }),
+      body: JSON.stringify(data),
     }
   );
   await handleResponse(res);

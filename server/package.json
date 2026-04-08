@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
-    "tsc": "tsc"
+    "tsc": "tsc",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "@whisker/common": "workspace:*",

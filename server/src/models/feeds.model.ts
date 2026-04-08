@@ -4,7 +4,7 @@ import { feeds as feedsTable, entries } from "../db/schema";
 import type { Feed } from "../lib/types";
 import { ok, err, type Result } from "@whisker/common";
 
-function readAll(): Result<(Feed & { id: number })[]> {
+function readAll() {
   try {
     const feedRows = db.select().from(feedsTable).orderBy(feedsTable.id).all();
 
@@ -17,30 +17,7 @@ function readAll(): Result<(Feed & { id: number })[]> {
         .all()
         .reverse();
 
-      return {
-        id: row.id,
-        title: row.title,
-        description: row.description,
-        link: row.link,
-        feedUrl: row.feedUrl,
-        author: row.author,
-        published: row.published,
-        image: row.image ?? undefined,
-        fetchedAt: row.fetchedAt ?? undefined,
-        entries: entryRows.map((e) => ({
-          feedId: e.feedId,
-          entryId: e.entryId,
-          title: e.title,
-          link: e.link,
-          author: e.author,
-          published: e.published,
-          updated: e.updated ?? undefined,
-          description: e.description,
-          thumbnail: e.thumbnail ?? undefined,
-          content: e.content ?? undefined,
-          openedAt: e.openedAt ?? undefined,
-        })),
-      };
+      return { ...row, entries: entryRows };
     });
 
     return ok(result);
@@ -143,14 +120,16 @@ function remove(id: number): Result<void> {
   }
 }
 
-function updateEntryOpenedAt(
+type EntryUpdate = Partial<Pick<typeof entries.$inferSelect, "openedAt" | "archivedAt" | "starredAt">>;
+
+function updateEntry(
   feedId: number,
   entryId: string,
-  openedAt: string | null
+  data: EntryUpdate
 ): Result<void> {
   try {
     db.update(entries)
-      .set({ openedAt })
+      .set(data)
       .where(and(eq(entries.feedId, feedId), eq(entries.entryId, entryId)))
       .run();
     return ok(undefined);
@@ -164,5 +143,5 @@ export const feeds = {
   readById,
   upsert,
   remove,
-  updateEntryOpenedAt,
+  updateEntry,
 };

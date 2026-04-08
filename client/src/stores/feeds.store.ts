@@ -16,7 +16,27 @@ async function toggleEntryRead(
   currentlyOpened: boolean
 ) {
   const openedAt = currentlyOpened ? null : new Date().toISOString();
-  await updateEntry(feedId, entryId, openedAt);
+  await updateEntry(feedId, entryId, { openedAt });
+  await loadFeeds();
+}
+
+async function toggleEntryArchived(
+  feedId: number,
+  entryId: string,
+  currentlyArchived: boolean
+) {
+  const archivedAt = currentlyArchived ? null : new Date().toISOString();
+  await updateEntry(feedId, entryId, { archivedAt });
+  await loadFeeds();
+}
+
+async function toggleEntryStarred(
+  feedId: number,
+  entryId: string,
+  currentlyStarred: boolean
+) {
+  const starredAt = currentlyStarred ? null : new Date().toISOString();
+  await updateEntry(feedId, entryId, { starredAt });
   await loadFeeds();
 }
 
@@ -25,4 +45,11 @@ async function removeFeed(feedId: number) {
   await loadFeeds();
 }
 
-export { feeds, loadFeeds, toggleEntryRead, removeFeed };
+export {
+  feeds,
+  loadFeeds,
+  toggleEntryRead,
+  toggleEntryArchived,
+  toggleEntryStarred,
+  removeFeed,
+};

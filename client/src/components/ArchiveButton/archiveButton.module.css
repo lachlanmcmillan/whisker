@@ -1,0 +1,24 @@
+.archiveButton {
+  position: absolute;
+  top: 0.5rem;
+  right: 2.5rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #888;
+  background: rgba(0, 0, 0, 0.5);
+  color: #888;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.archived {
+  opacity: 1;
+  border-color: #f90;
+  color: #f90;
+}

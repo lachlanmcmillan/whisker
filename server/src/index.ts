@@ -113,13 +113,9 @@ const server = Bun.serve({
       const entryId = decodeURIComponent(parts[3]);
       const body = await req.json();
 
-      if ("openedAt" in body) {
-        const result = feeds.updateEntryOpenedAt(feedId, entryId, body.openedAt);
-        if (result.error) return json(result, 500);
-        return json(result);
-      }
-
-      return json({ data: undefined });
+      const result = feeds.updateEntry(feedId, entryId, body);
+      if (result.error) return json(result, 500);
+      return json(result);
     }
 
     // POST /query { sql: string } — run arbitrary SQL (for DB explorer)

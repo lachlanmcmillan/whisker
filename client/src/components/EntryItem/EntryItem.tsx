@@ -6,7 +6,9 @@ import { CachedThumbnail } from "$components/CachedThumbnail/CachedThumbnail";
 import { CheckButton } from "$components/CheckButton/CheckButton";
 import { Link } from "$components/Link/Link";
 import { Title } from "$components/Title/Title";
-import { toggleEntryRead } from "$stores/feeds.store";
+import { ArchiveButton } from "$components/ArchiveButton/ArchiveButton";
+import { StarButton } from "$components/StarButton/StarButton";
+import { toggleEntryRead, toggleEntryArchived, toggleEntryStarred } from "$stores/feeds.store";
 import styles from "./entryItem.module.css";
 
 export function EntryItem(props: { entry: FeedEntry }) {
@@ -28,6 +30,28 @@ export function EntryItem(props: { entry: FeedEntry }) {
             props.entry.feedId,
             props.entry.entryId,
             !!props.entry.openedAt
+          );
+        }}
+      />
+      <ArchiveButton
+        archived={!!props.entry.archivedAt}
+        onClick={() => {
+          if (!props.entry.feedId) return;
+          toggleEntryArchived(
+            props.entry.feedId,
+            props.entry.entryId,
+            !!props.entry.archivedAt
+          );
+        }}
+      />
+      <StarButton
+        starred={!!props.entry.starredAt}
+        onClick={() => {
+          if (!props.entry.feedId) return;
+          toggleEntryStarred(
+            props.entry.feedId,
+            props.entry.entryId,
+            !!props.entry.starredAt
           );
         }}
       />
