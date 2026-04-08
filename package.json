@@ -21,6 +21,7 @@
     "dev": "bun run --parallel --filter @whisker/server --filter @whisker/client dev",
     "prettier": "prettier --write \"**/src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "deploy-server-ssh": "bun run ./scripts/deploy-server-ssh.ts",
+    "db:pull-latest-prod": "bun run ./scripts/download-db.ts",
     "tsc": "bun run --sequential --filter @whisker/server --filter @whisker/client tsc"
   }
 }

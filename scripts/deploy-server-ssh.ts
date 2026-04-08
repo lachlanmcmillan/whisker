@@ -15,46 +15,25 @@
 
 import { $ } from "bun";
 import chalk from "chalk";
+import {
+  host,
+  remotePort,
+  apiKey,
+  corsOrigin,
+  container,
+  requireEnv,
+  ssh,
+  step,
+  done,
+  uploadFile,
+} from "./zz_common";
 
-const host = process.env.DEPLOY_SSH_HOST;
-const remotePort = process.env.DEPLOY_SERVER_PORT ?? "3000";
-const apiKey = process.env.API_KEY;
-const corsOrigin = process.env.DEPLOY_CORS_ORIGIN;
-const container = "whisker";
-
-if (!host) {
-  console.error(chalk.red("DEPLOY_SSH_HOST is required (e.g. ubuntu@1.2.3.4)"));
-  process.exit(1);
-}
-
-if (!apiKey) {
-  console.error(chalk.red("API_KEY is required"));
-  process.exit(1);
-}
+requireEnv("DEPLOY_SSH_HOST", host);
+requireEnv("API_KEY", apiKey);
 
 const sha = (await $`git rev-parse --short HEAD`.text()).trim();
 const image = `whisker-server:${sha}`;
 const tarball = `/tmp/whisker-server-${sha}.tar.gz`;
-
-const ssh = (cmd: string) => $`ssh ${host} ${cmd}`.text();
-
-async function uploadFile(localPath: string, remoteTarget: string) {
-  const totalMB = (Bun.file(localPath).size / 1024 / 1024).toFixed(1);
-  step(`Uploading image to server (${totalMB}MB)...`);
-
-  const proc = Bun.spawnSync(["scp", "-o", "LogLevel=ERROR", localPath, remoteTarget], {
-    stdout: "inherit",
-    stderr: "inherit",
-    stdin: "inherit",
-  });
-  if (proc.exitCode !== 0) {
-    console.error(chalk.red("✗"), "Upload failed");
-    process.exit(1);
-  }
-}
-
-const step = (msg: string) => console.log(chalk.cyan("→"), msg);
-const done = (msg: string) => console.log(chalk.green("✓"), msg);
 
 step(`Testing SSH connection to ${chalk.bold(host)}...`);
 try {
