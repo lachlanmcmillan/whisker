@@ -9,10 +9,12 @@
   },
   "dependencies": {
     "@whisker/common": "workspace:*",
+    "drizzle-orm": "^0.45.2",
     "fast-xml-parser": "^5.5.10"
   },
   "devDependencies": {
     "@types/bun": "^1.3.11",
+    "drizzle-kit": "^0.31.10",
     "typescript": "catalog:"
   }
 }
