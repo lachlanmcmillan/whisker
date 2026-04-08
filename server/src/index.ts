@@ -18,7 +18,7 @@ function formatISOWithTZ(date: Date, timeZone: string): string {
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}${parts.timeZoneName?.replace("GMT", "") || "+00:00"}`;
 }
 
-import { sqlite } from "./db";
+import { db } from "./db";
 import { fetchFeed } from "./lib/feed/fetch";
 import { feeds } from "./models/feeds.model";
 import { ok, err } from "@whisker/common";
@@ -125,7 +125,7 @@ const server = Bun.serve({
         return json(err("db_query_failed", "sql is required"), 400);
 
       try {
-        const stmt = sqlite.query(body.sql);
+        const stmt = db.query(body.sql);
         const rows = stmt.all();
         return json(ok(rows));
       } catch (e) {

@@ -1,21 +1,31 @@
-import { eq, and } from "drizzle-orm";
 import { db } from "../db";
-import { feeds as feedsTable, entries } from "../db/schema";
+import type { entriesModel } from "../generated/prisma/models";
 import type { Feed } from "../lib/types";
 import { ok, err, type Result } from "@whisker/common";
 
+type EntryRow = entriesModel;
+type FeedRow = {
+  id: number;
+  title: string;
+  description: string;
+  link: string;
+  feedUrl: string;
+  author: string;
+  published: string;
+  image: string | null;
+  fetchedAt: string | null;
+};
+
 function readAll() {
   try {
-    const feedRows = db.select().from(feedsTable).orderBy(feedsTable.id).all();
+    const feedRows = db.query<FeedRow, []>(
+      "SELECT * FROM feeds ORDER BY id"
+    ).all();
 
     const result = feedRows.map((row) => {
-      const entryRows = db
-        .select()
-        .from(entries)
-        .where(eq(entries.feedId, row.id))
-        .orderBy(entries.published)
-        .all()
-        .reverse();
+      const entryRows = db.query<EntryRow, [number]>(
+        "SELECT * FROM entries WHERE feedId = ? ORDER BY published DESC"
+      ).all(row.id);
 
       return { ...row, entries: entryRows };
     });
@@ -26,15 +36,11 @@ function readAll() {
   }
 }
 
-function readById(
-  id: number
-): Result<typeof feedsTable.$inferSelect | null> {
+function readById(id: number): Result<FeedRow | null> {
   try {
-    const row = db
-      .select()
-      .from(feedsTable)
-      .where(eq(feedsTable.id, id))
-      .get();
+    const row = db.query<FeedRow, [number]>(
+      "SELECT * FROM feeds WHERE id = ?"
+    ).get(id);
     return ok(row ?? null);
   } catch (e) {
     return err("db_query_failed", e instanceof Error ? e.message : String(e));
@@ -43,66 +49,58 @@ function readById(
 
 function upsert(feed: Feed): Result<number> {
   try {
-    db.insert(feedsTable)
-      .values({
-        title: feed.title,
-        description: feed.description,
-        link: feed.link,
-        feedUrl: feed.feedUrl,
-        author: feed.author,
-        published: feed.published,
-        image: feed.image ?? null,
-        fetchedAt: feed.fetchedAt ?? null,
-      })
-      .onConflictDoUpdate({
-        target: feedsTable.link,
-        set: {
-          title: feed.title,
-          description: feed.description,
-          feedUrl: feed.feedUrl,
-          author: feed.author,
-          published: feed.published,
-          image: feed.image ?? null,
-          fetchedAt: feed.fetchedAt ?? null,
-        },
-      })
-      .run();
+    db.query(
+      `INSERT INTO feeds (title, description, link, feedUrl, author, published, image, fetchedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(link) DO UPDATE SET
+         title = excluded.title,
+         description = excluded.description,
+         feedUrl = excluded.feedUrl,
+         author = excluded.author,
+         published = excluded.published,
+         image = excluded.image,
+         fetchedAt = excluded.fetchedAt`
+    ).run(
+      feed.title,
+      feed.description,
+      feed.link,
+      feed.feedUrl,
+      feed.author,
+      feed.published,
+      feed.image ?? null,
+      feed.fetchedAt ?? null,
+    );
 
-    const feedRow = db
-      .select({ id: feedsTable.id })
-      .from(feedsTable)
-      .where(eq(feedsTable.link, feed.link))
-      .get();
+    const feedRow = db.query<{ id: number }, [string]>(
+      "SELECT id FROM feeds WHERE link = ?"
+    ).get(feed.link);
     if (!feedRow) return err("db_query_failed", "Failed to upsert feed");
 
     for (const entry of feed.entries) {
-      db.insert(entries)
-        .values({
-          feedId: feedRow.id,
-          entryId: entry.entryId,
-          title: entry.title,
-          link: entry.link,
-          author: entry.author,
-          published: entry.published,
-          updated: entry.updated ?? null,
-          description: entry.description,
-          thumbnail: entry.thumbnail ?? null,
-          content: entry.content ?? null,
-        })
-        .onConflictDoUpdate({
-          target: [entries.feedId, entries.entryId],
-          set: {
-            title: entry.title,
-            link: entry.link,
-            author: entry.author,
-            published: entry.published,
-            updated: entry.updated ?? null,
-            description: entry.description,
-            thumbnail: entry.thumbnail ?? null,
-            content: entry.content ?? null,
-          },
-        })
-        .run();
+      db.query(
+        `INSERT INTO entries (feedId, entryId, title, link, author, published, updated, description, thumbnail, content)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(feedId, entryId) DO UPDATE SET
+           title = excluded.title,
+           link = excluded.link,
+           author = excluded.author,
+           published = excluded.published,
+           updated = excluded.updated,
+           description = excluded.description,
+           thumbnail = excluded.thumbnail,
+           content = excluded.content`
+      ).run(
+        feedRow.id,
+        entry.entryId,
+        entry.title,
+        entry.link,
+        entry.author,
+        entry.published,
+        entry.updated ?? null,
+        entry.description,
+        entry.thumbnail ?? null,
+        entry.content ?? null,
+      );
     }
 
     return ok(feedRow.id);
@@ -113,14 +111,14 @@ function upsert(feed: Feed): Result<number> {
 
 function remove(id: number): Result<void> {
   try {
-    db.delete(feedsTable).where(eq(feedsTable.id, id)).run();
+    db.query("DELETE FROM feeds WHERE id = ?").run(id);
     return ok(undefined);
   } catch (e) {
     return err("db_query_failed", e instanceof Error ? e.message : String(e));
   }
 }
 
-type EntryUpdate = Partial<Pick<typeof entries.$inferSelect, "openedAt" | "archivedAt" | "starredAt">>;
+type EntryUpdate = Partial<Pick<EntryRow, "openedAt" | "archivedAt" | "starredAt">>;
 
 function updateEntry(
   feedId: number,
@@ -128,10 +126,23 @@ function updateEntry(
   data: EntryUpdate
 ): Result<void> {
   try {
-    db.update(entries)
-      .set(data)
-      .where(and(eq(entries.feedId, feedId), eq(entries.entryId, entryId)))
-      .run();
+    const setClauses: string[] = [];
+    const values: (string | null)[] = [];
+
+    for (const [key, value] of Object.entries(data)) {
+      if (["openedAt", "archivedAt", "starredAt"].includes(key)) {
+        setClauses.push(`${key} = ?`);
+        values.push(value ?? null);
+      }
+    }
+
+    if (setClauses.length === 0) return ok(undefined);
+
+    values.push(String(feedId), entryId);
+    db.query(
+      `UPDATE entries SET ${setClauses.join(", ")} WHERE feedId = ? AND entryId = ?`
+    ).run(...values);
+
     return ok(undefined);
   } catch (e) {
     return err("db_query_failed", e instanceof Error ? e.message : String(e));

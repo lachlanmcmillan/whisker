@@ -14,4 +14,6 @@ COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/common common
 COPY --from=build /app/server server
 EXPOSE 3000
-CMD ["bun", "run", "server/src/index.ts"]
+COPY server/entrypoint.sh .
+RUN chmod +x entrypoint.sh
+ENTRYPOINT ["./entrypoint.sh"]
