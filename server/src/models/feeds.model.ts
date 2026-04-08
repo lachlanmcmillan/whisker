@@ -118,6 +118,34 @@ function remove(id: number): Result<void> {
   }
 }
 
+type FeedUpdate = Partial<Pick<FeedRow, "title" | "description" | "author" | "image" | "link" | "feedUrl">>;
+
+function update(id: number, data: FeedUpdate): Result<void> {
+  try {
+    const allowedKeys = ["title", "description", "author", "image", "link", "feedUrl"];
+    const setClauses: string[] = [];
+    const values: (string | null)[] = [];
+
+    for (const [key, value] of Object.entries(data)) {
+      if (allowedKeys.includes(key)) {
+        setClauses.push(`${key} = ?`);
+        values.push(value ?? null);
+      }
+    }
+
+    if (setClauses.length === 0) return ok(undefined);
+
+    values.push(String(id));
+    db.query(
+      `UPDATE feeds SET ${setClauses.join(", ")} WHERE id = ?`
+    ).run(...values);
+
+    return ok(undefined);
+  } catch (e) {
+    return err("db_query_failed", e instanceof Error ? e.message : String(e));
+  }
+}
+
 type EntryUpdate = Partial<Pick<EntryRow, "openedAt" | "archivedAt" | "starredAt">>;
 
 function updateEntry(
@@ -153,6 +181,7 @@ export const feeds = {
   readAll,
   readById,
   upsert,
+  update,
   remove,
   updateEntry,
 };

@@ -88,6 +88,18 @@ export async function deleteFeed(id: number): Promise<void> {
   await handleResponse(res);
 }
 
+export async function updateFeed(
+  id: number,
+  data: Partial<Pick<Feed, "title" | "description" | "author" | "image" | "link" | "feedUrl">>
+): Promise<void> {
+  const res = await fetch(`${BASE}/feeds/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  await handleResponse(res);
+}
+
 export async function refreshFeed(id: number): Promise<Feed> {
   const res = await fetch(`${BASE}/feeds/${id}/refresh`, {
     method: "POST",

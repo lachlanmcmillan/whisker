@@ -1,6 +1,6 @@
 import { createStore, reconcile } from "solid-js/store";
 import type { Feed } from "$lib/api";
-import { fetchFeeds, updateEntry, deleteFeed } from "$lib/api";
+import { fetchFeeds, updateEntry, updateFeed, deleteFeed } from "$lib/api";
 
 const [feeds, setFeeds] = createStore<Feed[]>([]);
 
@@ -40,6 +40,14 @@ async function toggleEntryStarred(
   await loadFeeds();
 }
 
+async function editFeed(
+  feedId: number,
+  data: Partial<Pick<Feed, "title" | "description" | "author" | "image" | "link" | "feedUrl">>
+) {
+  await updateFeed(feedId, data);
+  await loadFeeds();
+}
+
 async function removeFeed(feedId: number) {
   await deleteFeed(feedId);
   await loadFeeds();
@@ -48,6 +56,7 @@ async function removeFeed(feedId: number) {
 export {
   feeds,
   loadFeeds,
+  editFeed,
   toggleEntryRead,
   toggleEntryArchived,
   toggleEntryStarred,
