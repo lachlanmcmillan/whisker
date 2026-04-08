@@ -1,12 +1,12 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../db";
-import { feeds, entries } from "../db/schema";
+import { feeds as feedsTable, entries } from "../db/schema";
 import type { Feed } from "../lib/types";
 import { ok, err, type Result } from "@whisker/common";
 
-export function readAllFeeds(): Result<(Feed & { id: number })[]> {
+function readAll(): Result<(Feed & { id: number })[]> {
   try {
-    const feedRows = db.select().from(feeds).orderBy(feeds.id).all();
+    const feedRows = db.select().from(feedsTable).orderBy(feedsTable.id).all();
 
     const result = feedRows.map((row) => {
       const entryRows = db
@@ -49,14 +49,14 @@ export function readAllFeeds(): Result<(Feed & { id: number })[]> {
   }
 }
 
-export function readFeedById(
+function readById(
   id: number
-): Result<typeof feeds.$inferSelect | null> {
+): Result<typeof feedsTable.$inferSelect | null> {
   try {
     const row = db
       .select()
-      .from(feeds)
-      .where(eq(feeds.id, id))
+      .from(feedsTable)
+      .where(eq(feedsTable.id, id))
       .get();
     return ok(row ?? null);
   } catch (e) {
@@ -64,9 +64,9 @@ export function readFeedById(
   }
 }
 
-export function upsertFeed(feed: Feed): Result<number> {
+function upsert(feed: Feed): Result<number> {
   try {
-    db.insert(feeds)
+    db.insert(feedsTable)
       .values({
         title: feed.title,
         description: feed.description,
@@ -78,7 +78,7 @@ export function upsertFeed(feed: Feed): Result<number> {
         fetchedAt: feed.fetchedAt ?? null,
       })
       .onConflictDoUpdate({
-        target: feeds.link,
+        target: feedsTable.link,
         set: {
           title: feed.title,
           description: feed.description,
@@ -92,9 +92,9 @@ export function upsertFeed(feed: Feed): Result<number> {
       .run();
 
     const feedRow = db
-      .select({ id: feeds.id })
-      .from(feeds)
-      .where(eq(feeds.link, feed.link))
+      .select({ id: feedsTable.id })
+      .from(feedsTable)
+      .where(eq(feedsTable.link, feed.link))
       .get();
     if (!feedRow) return err("db_query_failed", "Failed to upsert feed");
 
@@ -134,16 +134,16 @@ export function upsertFeed(feed: Feed): Result<number> {
   }
 }
 
-export function deleteFeed(id: number): Result<void> {
+function remove(id: number): Result<void> {
   try {
-    db.delete(feeds).where(eq(feeds.id, id)).run();
+    db.delete(feedsTable).where(eq(feedsTable.id, id)).run();
     return ok(undefined);
   } catch (e) {
     return err("db_query_failed", e instanceof Error ? e.message : String(e));
   }
 }
 
-export function updateEntryOpenedAt(
+function updateEntryOpenedAt(
   feedId: number,
   entryId: string,
   openedAt: string | null
@@ -158,3 +158,11 @@ export function updateEntryOpenedAt(
     return err("db_query_failed", e instanceof Error ? e.message : String(e));
   }
 }
+
+export const feeds = {
+  readAll,
+  readById,
+  upsert,
+  remove,
+  updateEntryOpenedAt,
+};

@@ -20,13 +20,7 @@ function formatISOWithTZ(date: Date, timeZone: string): string {
 
 import { sqlite } from "./db";
 import { fetchFeed } from "./lib/feed/fetch";
-import {
-  readAllFeeds,
-  readFeedById,
-  upsertFeed,
-  deleteFeed,
-  updateEntryOpenedAt,
-} from "./models/feed.model";
+import { feeds } from "./models/feeds.model";
 import { ok, err } from "@whisker/common";
 
 const server = Bun.serve({
@@ -59,7 +53,7 @@ const server = Bun.serve({
 
     // GET /feeds
     if (method === "GET" && url.pathname === "/feeds") {
-      const result = readAllFeeds();
+      const result = feeds.readAll();
       if (result.error) return json(result, 500);
       return json(result);
     }
@@ -76,7 +70,7 @@ const server = Bun.serve({
       const fetchResult = await fetchFeed(body.url);
       if (fetchResult.error) return json(fetchResult, 400);
 
-      const upsertResult = upsertFeed(fetchResult.data);
+      const upsertResult = feeds.upsert(fetchResult.data);
       if (upsertResult.error) return json(upsertResult, 500);
 
       return json(fetchResult, 201);
@@ -85,7 +79,7 @@ const server = Bun.serve({
     // DELETE /feeds/:id
     if (method === "DELETE" && url.pathname.match(/^\/feeds\/\d+$/)) {
       const id = parseInt(url.pathname.split("/")[2]);
-      const result = deleteFeed(id);
+      const result = feeds.remove(id);
       if (result.error) return json(result, 500);
       return json(result);
     }
@@ -94,7 +88,7 @@ const server = Bun.serve({
     if (method === "POST" && url.pathname.match(/^\/feeds\/\d+\/refresh$/)) {
       const id = parseInt(url.pathname.split("/")[2]);
 
-      const feedResult = readFeedById(id);
+      const feedResult = feeds.readById(id);
       if (feedResult.error) return json(feedResult, 500);
       if (!feedResult.data)
         return json(
@@ -106,7 +100,7 @@ const server = Bun.serve({
       const fetchResult = await fetchFeed(feedUrl);
       if (fetchResult.error) return json(fetchResult, 500);
 
-      const upsertResult = upsertFeed(fetchResult.data);
+      const upsertResult = feeds.upsert(fetchResult.data);
       if (upsertResult.error) return json(upsertResult, 500);
 
       return json(fetchResult);
@@ -120,7 +114,7 @@ const server = Bun.serve({
       const body = await req.json();
 
       if ("openedAt" in body) {
-        const result = updateEntryOpenedAt(feedId, entryId, body.openedAt);
+        const result = feeds.updateEntryOpenedAt(feedId, entryId, body.openedAt);
         if (result.error) return json(result, 500);
         return json(result);
       }
