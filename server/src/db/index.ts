@@ -13,5 +13,5 @@ export const db = drizzle(sqlite, { schema });
 export { sqlite };
 
 if (process.env.NODE_ENV === "production") {
-  migrate(db, { migrationsFolder: "./drizzle" });
+  migrate(db, { migrationsFolder: "./server/drizzle" });
 }
