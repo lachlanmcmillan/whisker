@@ -4,7 +4,7 @@ COPY package.json bun.lock ./
 COPY common/package.json common/
 COPY server/package.json server/
 COPY client/package.json client/
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --verbose
 COPY common common
 COPY server server
 
