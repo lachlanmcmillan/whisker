@@ -1,12 +1,12 @@
 .starButton {
   position: absolute;
   top: 0.5rem;
-  right: 4.5rem;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid #888;
-  background: rgba(0, 0, 0, 0.5);
+  right: 5rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
   color: #888;
   cursor: pointer;
   display: flex;
@@ -14,13 +14,21 @@
   justify-content: center;
   padding: 0;
   opacity: 0;
-  transition: opacity 0.15s ease;
-  font-size: 14px;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  font-size: 18px;
   line-height: 1;
+}
+
+.starButton:hover {
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
 }
 
 .starred {
   opacity: 1;
-  border-color: #fd0;
   color: #fd0;
+}
+
+.starred:hover {
+  color: #fe6;
 }
