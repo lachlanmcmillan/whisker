@@ -8,7 +8,7 @@ import { LoginForm } from "$components/LoginForm/LoginForm";
 import { FeedManager } from "$components/FeedManager/FeedManager";
 import { DatabaseExplorer } from "./DatabaseExplorer";
 import { getApiKey, setOnUnauthorized, refreshFeed } from "$lib/api";
-import { feeds, loadFeeds } from "$stores/feeds.store";
+import { feeds, loadFeeds, isEntryVisible } from "$stores/feeds.store";
 import { appSettingsStore } from "$stores/settings.store";
 import styles from "./App.module.css";
 
@@ -26,6 +26,7 @@ function App() {
   const allEntriesSorted = () =>
     [...feeds]
       .flatMap(f => f.entries)
+      .filter(isEntryVisible)
       .sort(
         (a, b) =>
           new Date(b.published).getTime() - new Date(a.published).getTime()
@@ -126,6 +127,12 @@ function App() {
                       )}
                     </For>
                   </nav>
+                  <Button
+                    active={appSettings.showUnreadOnly}
+                    onClick={() => setAppSettings("showUnreadOnly", !appSettings.showUnreadOnly)}
+                  >
+                    Unread
+                  </Button>
                   <div class={styles.layoutToggle}>
                     <Button
                       active={appSettings.layout === "List"}
@@ -161,7 +168,7 @@ function App() {
                     each={
                       activeIndex() === -1
                         ? allEntriesSorted()
-                        : feeds[activeIndex()]?.entries ?? []
+                        : [...(feeds[activeIndex()]?.entries ?? [])].filter(isEntryVisible)
                     }
                   >
                     {entry => <EntryItem entry={entry} />}

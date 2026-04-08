@@ -7,7 +7,7 @@ import { CheckButton } from "$components/CheckButton/CheckButton";
 import { timeAgo } from "$lib/timeAgo";
 import { ArchiveButton } from "$components/ArchiveButton/ArchiveButton";
 import { StarButton } from "$components/StarButton/StarButton";
-import { feeds, toggleEntryRead, toggleEntryArchived, toggleEntryStarred } from "$stores/feeds.store";
+import { feeds, toggleEntryRead, toggleEntryArchived, toggleEntryStarred, isEntryVisible } from "$stores/feeds.store";
 import { appSettingsStore } from "$stores/settings.store";
 import styles from "./gridView.module.css";
 
@@ -38,7 +38,8 @@ function flattenAndSort(
 export function GridView() {
   const [selectedFeedId, setSelectedFeedId] = createSignal<number | null>(null);
   const [appSettings, setAppSettings] = appSettingsStore;
-  const items = () => flattenAndSort(feeds, selectedFeedId());
+  const items = () =>
+    flattenAndSort(feeds, selectedFeedId()).filter(i => isEntryVisible(i.entry));
   const selectedFeed = createMemo(() => {
     const id = selectedFeedId();
     return id !== null ? [...feeds].find(f => f.id === id) ?? null : null;
@@ -65,6 +66,12 @@ export function GridView() {
             )}
           </For>
         </nav>
+        <Button
+          active={appSettings.showUnreadOnly}
+          onClick={() => setAppSettings("showUnreadOnly", !appSettings.showUnreadOnly)}
+        >
+          Unread
+        </Button>
         <div class={styles.layoutToggle}>
           <Button
             active={appSettings.layout === "List"}
