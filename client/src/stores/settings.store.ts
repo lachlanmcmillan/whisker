@@ -3,10 +3,12 @@ import { createStore } from "solid-js/store";
 
 interface AppSettings {
   layout: "List" | "Grid";
+  showUnreadOnly: boolean;
 }
 
 const defaultSettings: AppSettings = {
   layout: "List",
+  showUnreadOnly: false,
 };
 
 export const appSettingsStore = createStore<AppSettings>(

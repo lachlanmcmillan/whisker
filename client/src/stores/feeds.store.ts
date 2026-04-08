@@ -1,8 +1,15 @@
 import { createStore, reconcile } from "solid-js/store";
-import type { Feed } from "$lib/api";
+import type { Feed, FeedEntry } from "$lib/api";
 import { fetchFeeds, updateEntry, deleteFeed } from "$lib/api";
+import { appSettingsStore } from "$stores/settings.store";
 
 const [feeds, setFeeds] = createStore<Feed[]>([]);
+
+function isEntryVisible(entry: FeedEntry): boolean {
+  const [appSettings] = appSettingsStore;
+  if (!appSettings.showUnreadOnly) return true;
+  return !entry.openedAt && !entry.archivedAt;
+}
 
 async function loadFeeds() {
   const data = await fetchFeeds();
@@ -52,4 +59,5 @@ export {
   toggleEntryArchived,
   toggleEntryStarred,
   removeFeed,
+  isEntryVisible,
 };
