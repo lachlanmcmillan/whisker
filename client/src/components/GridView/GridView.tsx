@@ -14,6 +14,7 @@ import styles from "./gridView.module.css";
 interface GridEntry {
   entry: FeedEntry;
   feedTitle: string;
+  feedImage: string | null;
 }
 
 function flattenAndSort(
@@ -24,7 +25,7 @@ function flattenAndSort(
   for (const feed of feeds) {
     if (filterFeedId !== null && feed.id !== filterFeedId) continue;
     for (const entry of feed.entries) {
-      items.push({ entry, feedTitle: feed.title });
+      items.push({ entry, feedTitle: feed.title, feedImage: feed.image ?? null });
     }
   }
   items.sort(
@@ -141,14 +142,16 @@ export function GridView() {
                 }
               >
                 <Show
-                  when={item.entry.thumbnail}
+                  when={item.entry.thumbnail ?? item.feedImage}
                   fallback={<div class={styles.placeholder} />}
                 >
-                  <CachedThumbnail
-                    url={item.entry.thumbnail!}
-                    alt={item.entry.title}
-                    class={styles.thumbnail}
-                  />
+                  {url => (
+                    <CachedThumbnail
+                      url={url()}
+                      alt={item.entry.title}
+                      class={styles.thumbnail}
+                    />
+                  )}
                 </Show>
               </a>
               <div class={styles.info}>
