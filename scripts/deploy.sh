@@ -1,21 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+CURRENT_DATE=$(date +%Y%m%d%H%M%S)
+APP_NAME="whisker"
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
 cd "$ROOT_DIR/server"
+
+echo "==> Stopping App"
+pm2 stop "whisker"
 
 echo "==> Installing dependencies"
 bun install
 
+echo "==> Backing up database"
+cp $DB_PATH $DB_PATH.$CURRENT_DATE.bak
+
 echo "==> Running migrations"
-bun prisma migrate deploy
+bunx --bun prisma migrate deploy
 
-APP_NAME="whisker"
-
-if command -v pm2 >/dev/null 2>&1; then
-  echo "==> Restarting ${APP_NAME} via pm2"
-  pm2 restart "$APP_NAME" || pm2 start "ecosystem.config.cjs"
-  pm2 status "$APP_NAME"
-else
-  echo "pm2 not found, skipping process restart"
-fi
+echo "==> Restarting ${APP_NAME} via pm2"
+pm2 start "ecosystem.config.cjs"
+pm2 status "$APP_NAME"
