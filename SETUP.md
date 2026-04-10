@@ -8,16 +8,54 @@ Instructions for setting up a fresh Ubuntu server to host Whisker.
 - An A record for `api.whisker.lmcmillan.dev` pointing to the server's IP
 - Ports 80 and 443 open in the server's security group (80 for Let's Encrypt cert challenges, 443 for HTTPS)
 
-## 1. Install Docker
+## 1. Install Bun
 
 ```sh
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker "$USER"
+curl -fsSL https://bun.sh/install | bash
 ```
 
-Log out and back in for the group change to take effect.
+## 2. Install PM2
 
-## 2. Install Caddy
+```sh
+bun install -g pm2
+```
+
+## 3. Clone the repo
+
+```sh
+git clone <repo-url> ~/whisker
+cd ~/whisker
+bun install
+```
+
+## 4. Configure environment
+
+Create a `.env.local` file in the repo root with your production values:
+
+```sh
+cat > ~/whisker/.env.local <<'EOF'
+API_KEY=your-api-key-here
+DEPLOY_CORS_ORIGIN=https://whisker.lmcmillan.dev
+EOF
+```
+
+## 5. Initial deploy
+
+```sh
+cd ~/whisker
+bash scripts/deploy.sh
+```
+
+This runs migrations and starts the app via PM2.
+
+## 6. Enable PM2 on boot
+
+```sh
+pm2 startup
+pm2 save
+```
+
+## 7. Install Caddy
 
 ```sh
 sudo apt-get update
@@ -28,28 +66,26 @@ sudo apt-get update
 sudo apt-get install -y caddy
 ```
 
-## 3. Configure Caddy
+## 8. Configure Caddy
 
 Write the Caddyfile:
 
 ```sh
 sudo tee /etc/caddy/Caddyfile >/dev/null <<'EOF'
 api.whisker.lmcmillan.dev {
-    reverse_proxy localhost:8022
+    reverse_proxy localhost:3000
 }
 EOF
 ```
 
-To add more domains later, add another block to the same file.
-
-## 4. Start Caddy
+## 9. Start Caddy
 
 ```sh
 sudo systemctl enable caddy
 sudo systemctl restart caddy
 ```
 
-This may take a moment as Caddy provisions a TLS certificate from Let's Encrypt. Check status with:
+Check status with:
 
 ```sh
 sudo systemctl status caddy

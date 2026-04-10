@@ -1,5 +1,14 @@
 const startedAt = Date.now();
 
+const commitSha = process.env.COMMIT_SHA ?? (() => {
+  try {
+    const result = Bun.spawnSync(["git", "rev-parse", "--short", "HEAD"]);
+    return result.stdout.toString().trim() || "dev";
+  } catch {
+    return "dev";
+  }
+})();
+
 function formatISOWithTZ(date: Date, timeZone: string): string {
   const fmt = new Intl.DateTimeFormat("en-CA", {
     timeZone,
@@ -36,7 +45,7 @@ const server = Bun.serve({
     // GET /monitor — unauthenticated
     if (method === "GET" && url.pathname === "/monitor") {
       return json({
-        commit: process.env.COMMIT_SHA ?? "dev",
+        commit: commitSha,
         serverTime: formatISOWithTZ(new Date(), "Australia/Melbourne"),
         uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
       });

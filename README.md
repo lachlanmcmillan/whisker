@@ -58,11 +58,11 @@ How the sync data travels between devices. The "relay" could be anything that ca
 
 ### Server setup
 
-See [SETUP.md](SETUP.md) for instructions on installing Docker and Caddy on the server.
+See [SETUP.md](SETUP.md) for instructions on installing Bun, PM2, and Caddy on the server.
 
 ### Deploy the server
 
-Builds a Docker image locally, uploads it to the server via scp, and starts the container. Runs a health check against `/monitor` to verify the deploy succeeded.
+SSHs into the server, pulls the latest code, installs deps, runs migrations, and restarts PM2. Runs a health check against `/monitor` to verify the deploy succeeded.
 
 ```sh
 bun run deploy-server-ssh
@@ -74,11 +74,17 @@ The client is deployed to GitHub Pages via a GitHub Actions workflow on push to 
 
 ### Environment variables
 
-Set these in `.env.local` at the repo root:
+Set these in `.env.local` at the repo root (local machine, for deploy script):
 
 | Variable | Description | Example |
 |---|---|---|
 | `DEPLOY_SSH_HOST` | SSH destination for the server | `ubuntu@1.2.3.4` |
-| `DEPLOY_SERVER_PORT` | Port the container exposes on the server | `8022` |
+| `DEPLOY_SERVER_PORT` | Port the server listens on (default: 3000) | `3000` |
+| `DEPLOY_REMOTE_DIR` | Path to the repo on the server | `~/whisker` |
+
+Set these in `.env.local` on the remote server:
+
+| Variable | Description | Example |
+|---|---|---|
 | `API_KEY` | API key for authenticating requests. Alphanumeric only (no symbols) | `abc123...` |
 | `DEPLOY_CORS_ORIGIN` | Allowed CORS origin for the frontend | `https://whisker.lmcmillan.dev` |
