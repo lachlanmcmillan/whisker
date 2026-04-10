@@ -18,4 +18,4 @@ db.close();
 
 // Apply any pending migrations
 console.log("Running prisma migrate deploy...");
-execSync("bunx prisma migrate deploy", { stdio: "inherit" });
+execSync("bun prisma migrate deploy", { stdio: "inherit" });

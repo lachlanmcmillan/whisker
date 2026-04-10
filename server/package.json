@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
     "tsc": "tsc",
-    "db:migrate": "prisma migrate dev",
+    "db:migrate": "bun run src/db/migrate.ts",
     "db:generate": "prisma generate"
   },
   "dependencies": {

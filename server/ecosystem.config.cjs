@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "whisker",
       script: "bun",
-      args: "server/src/index.ts",
+      args: "run start",
       cwd: __dirname,
       interpreter: "none",
       watch: false,
