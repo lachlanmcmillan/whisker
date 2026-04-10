@@ -43,7 +43,7 @@ step(`Pulling latest code in ${chalk.bold(remoteDir)}...`);
 await ssh(`cd ${remoteDir} && git pull`);
 done("Code updated");
 
-const sha = (await ssh(`cd ${remoteDir} && git rev-parse --short HEAD`)).trim();
+const sha = (await ssh(`cd ${remoteDir} && git rev-parse --short HEAD`)).stdout.toString().trim();
 
 step(`Running deploy script...`);
 await ssh(`cd ${remoteDir} && bash scripts/deploy.sh`);
@@ -51,7 +51,7 @@ done("Deploy script completed");
 
 step("Running health check...");
 const monitor = await ssh(`curl -s http://localhost:${remotePort}/monitor`);
-const health = JSON.parse(monitor);
+const health = JSON.parse(monitor.stdout.toString());
 if (health.commit !== sha) {
   console.error(chalk.red("✗"), `Expected commit ${sha}, got ${health.commit}`);
   process.exit(1);

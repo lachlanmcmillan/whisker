@@ -12,7 +12,9 @@ export function requireEnv(name: string, value: string | undefined): asserts val
   }
 }
 
-export const ssh = (cmd: string) => $`ssh ${host} ${cmd}`.text();
+// Use an interactive login shell so the remote user's profile is loaded (e.g. bun on PATH)
+export const ssh = (cmd: string) =>
+  $`ssh ${host} ${"/usr/bin/env bash -lic " + JSON.stringify(cmd)}`;
 
 export const step = (msg: string) => console.log(chalk.cyan("→"), msg);
 export const done = (msg: string) => console.log(chalk.green("✓"), msg);
