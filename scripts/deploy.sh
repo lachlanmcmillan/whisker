@@ -8,7 +8,7 @@ echo "==> Installing dependencies"
 bun install
 
 echo "==> Running migrations"
-bun run src/db/migrate.ts
+bun prisma migrate deploy
 
 APP_NAME="whisker"
 

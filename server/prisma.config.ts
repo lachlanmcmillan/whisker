@@ -6,6 +6,6 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: `file:${process.env["DB_PATH"] ?? "whisker.db"}`,
+    url: `file:${process.env["DB_PATH"]}`,
   },
 });

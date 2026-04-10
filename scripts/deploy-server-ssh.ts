@@ -50,7 +50,12 @@ await ssh(`cd ${remoteDir} && bash scripts/deploy.sh`);
 done("Deploy script completed");
 
 step("Running health check...");
-const monitor = await ssh(`curl -s http://localhost:${remotePort}/monitor`);
+const monitor = await ssh(
+  `for i in 1 2 3 4 5 6 7 8 9 10; do ` +
+    `curl -sf http://localhost:${remotePort}/monitor && exit 0; ` +
+    `sleep 1; ` +
+  `done; exit 1`
+);
 const health = JSON.parse(monitor.stdout.toString());
 if (health.commit !== sha) {
   console.error(chalk.red("✗"), `Expected commit ${sha}, got ${health.commit}`);
