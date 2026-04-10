@@ -1,39 +1,34 @@
 /**
  * Deploy the Whisker server to a remote host via SSH.
  *
- * Builds a Docker image locally, uploads it to the server via scp,
- * then stops the old container and starts the new one. Finishes with
- * a health check against /monitor to verify the deploy succeeded.
+ * SSHs into the server, pulls the latest code, and runs the deploy
+ * script which installs deps, runs migrations, and restarts PM2.
+ * Finishes with a health check against /monitor.
  *
  * Required env vars:
  *   DEPLOY_SSH_HOST       - SSH destination (e.g. ubuntu@1.2.3.4)
- *   DEPLOY_SERVER_PORT    - Port to expose on the remote host (default: 3000)
+ *   DEPLOY_REMOTE_DIR     - Path to the repo on the server
+ *
+ * Optional env vars:
+ *   DEPLOY_SERVER_PORT    - Port the server listens on (default: 3000)
  *
  * Usage:
  *   bun run deploy-server-ssh
  */
 
-import { $ } from "bun";
 import chalk from "chalk";
 import {
   host,
   remotePort,
-  apiKey,
-  corsOrigin,
-  container,
+  remoteDir,
   requireEnv,
   ssh,
   step,
   done,
-  uploadFile,
 } from "./zz_common";
 
 requireEnv("DEPLOY_SSH_HOST", host);
-requireEnv("API_KEY", apiKey);
-
-const sha = (await $`git rev-parse --short HEAD`.text()).trim();
-const image = `whisker-server:${sha}`;
-const tarball = `/tmp/whisker-server-${sha}.tar.gz`;
+requireEnv("DEPLOY_REMOTE_DIR", remoteDir);
 
 step(`Testing SSH connection to ${chalk.bold(host)}...`);
 try {
@@ -44,42 +39,15 @@ try {
   process.exit(1);
 }
 
-step(`Building Docker image ${chalk.bold(image)}...`);
-await $`docker build -t ${image} -f ./server/Dockerfile .`;
-done("Image built");
+step(`Pulling latest code in ${chalk.bold(remoteDir)}...`);
+await ssh(`cd ${remoteDir} && git pull`);
+done("Code updated");
 
-step(`Saving image to ${chalk.bold(tarball)}...`);
-await $`docker save ${image} | gzip > ${tarball}`;
-done(`Image saved (${(Bun.file(tarball).size / 1024 / 1024).toFixed(1)}MB)`);
+const sha = (await ssh(`cd ${remoteDir} && git rev-parse --short HEAD`)).trim();
 
-await uploadFile(tarball, `${host}:${tarball}`);
-done("Image uploaded");
-
-step(`Loading image on ${chalk.bold(host)}...`);
-await ssh(`docker load -i ${tarball}`);
-done("Image loaded");
-
-step(`Stopping existing container ${chalk.bold(container)}...`);
-await ssh(`docker stop ${container} 2>/dev/null || true`);
-await ssh(`docker rm ${container} 2>/dev/null || true`);
-done("Container stopped");
-
-step(`Starting container ${chalk.bold(container)} on port ${chalk.bold(remotePort)}...`);
-const dockerRunArgs = [
-  "docker run -d",
-  `--name ${container}`,
-  "--restart unless-stopped",
-  `-p ${remotePort}:3000`,
-  "-v whisker-data:/data",
-  "-e DB_PATH=/data/whisker.db",
-  "-e NODE_ENV=production",
-  `-e COMMIT_SHA=${sha}`,
-  `-e API_KEY=${apiKey}`,
-  ...(corsOrigin ? [`-e DEPLOY_CORS_ORIGIN=${corsOrigin}`] : []),
-  image,
-];
-await ssh(dockerRunArgs.join(" "));
-done("Container started");
+step(`Running deploy script...`);
+await ssh(`cd ${remoteDir} && bash scripts/deploy.sh`);
+done("Deploy script completed");
 
 step("Running health check...");
 const monitor = await ssh(`curl -s http://localhost:${remotePort}/monitor`);
@@ -90,14 +58,9 @@ if (health.commit !== sha) {
 }
 done(`Healthy — commit ${chalk.bold(health.commit)}, uptime ${health.uptimeSeconds}s`);
 
-step(`Cleaning up ${chalk.bold(tarball)}...`);
-await ssh(`rm ${tarball}`);
-await $`rm ${tarball}`;
-done("Cleaned up");
-
 console.log(
   chalk.green.bold("\n✓ Deployed"),
-  chalk.bold(image),
+  chalk.bold(sha),
   chalk.green.bold("to"),
   chalk.bold(`${host}:${remotePort}`)
 );
