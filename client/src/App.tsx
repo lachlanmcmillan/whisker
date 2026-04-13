@@ -14,7 +14,7 @@ import styles from "./App.module.css";
 
 function App() {
   const [authenticated, setAuthenticated] = createSignal(!!getApiKey());
-  const [activeIndex, setActiveIndex] = createSignal(-1);
+  const [selectedFeedId, setSelectedFeedId] = createSignal<number | null>(null);
   const [loading, setLoading] = createSignal(true);
   const [refreshing, setRefreshing] = createSignal(false);
   const [refreshError, setRefreshError] = createSignal<string | null>(null);
@@ -22,6 +22,11 @@ function App() {
   const [appSettings, setAppSettings] = appSettingsStore;
 
   setOnUnauthorized(() => setAuthenticated(false));
+
+  const selectedFeed = () => {
+    const id = selectedFeedId();
+    return id !== null ? [...feeds].find(f => f.id === id) ?? null : null;
+  };
 
   const allEntriesSorted = () =>
     [...feeds]
@@ -34,11 +39,12 @@ function App() {
 
   const handleFeedAdded = async () => {
     const data = await loadFeeds();
-    setActiveIndex(data.length - 1);
+    const lastFeed = data[data.length - 1];
+    if (lastFeed) setSelectedFeedId(lastFeed.id);
   };
 
   const handleRefreshFeed = async () => {
-    const feed = feeds[activeIndex()];
+    const feed = selectedFeed();
     if (!feed?.id) return;
 
     setRefreshError(null);
@@ -105,20 +111,20 @@ function App() {
                 <div class={styles.toolbar}>
                   <nav class={styles.feedTabs}>
                     <Button
-                      active={activeIndex() === -1}
+                      active={selectedFeedId() === null}
                       onClick={() => {
-                        setActiveIndex(-1);
+                        setSelectedFeedId(null);
                         setRefreshError(null);
                       }}
                     >
                       All
                     </Button>
                     <For each={[...feeds]}>
-                      {(f, i) => (
+                      {f => (
                         <Button
-                          active={i() === activeIndex()}
+                          active={selectedFeedId() === f.id}
                           onClick={() => {
-                            setActiveIndex(i());
+                            setSelectedFeedId(f.id);
                             setRefreshError(null);
                           }}
                         >
@@ -149,7 +155,7 @@ function App() {
                   </div>
                 </div>
 
-                <Show when={activeIndex() >= 0 && feeds[activeIndex()]}>
+                <Show when={selectedFeed()}>
                   {feed => (
                     <div>
                       <FeedHeader feed={feed()} />
@@ -166,9 +172,9 @@ function App() {
                 <ul class={styles.entries}>
                   <For
                     each={
-                      activeIndex() === -1
+                      selectedFeedId() === null
                         ? allEntriesSorted()
-                        : [...(feeds[activeIndex()]?.entries ?? [])].filter(isEntryVisible)
+                        : [...(selectedFeed()?.entries ?? [])].filter(isEntryVisible)
                     }
                   >
                     {entry => <EntryItem entry={entry} />}
@@ -177,7 +183,7 @@ function App() {
               </>
             }
           >
-            <GridView />
+            <GridView selectedFeedId={selectedFeedId} setSelectedFeedId={setSelectedFeedId} />
           </Show>
         </div>
       </Show>
