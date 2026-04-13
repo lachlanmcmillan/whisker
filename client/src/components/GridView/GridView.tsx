@@ -1,4 +1,4 @@
-import { createSignal, createMemo, Show, For } from "solid-js";
+import { createMemo, Show, For } from "solid-js";
 import type { Feed, FeedEntry } from "$lib/api";
 import { Button } from "$components/Button/Button";
 import { FeedHeader } from "$components/FeedHeader/FeedHeader";
@@ -36,8 +36,14 @@ function flattenAndSort(
   return items;
 }
 
-export function GridView() {
-  const [selectedFeedId, setSelectedFeedId] = createSignal<number | null>(null);
+interface GridViewProps {
+  selectedFeedId: () => number | null;
+  setSelectedFeedId: (id: number | null) => void;
+}
+
+export function GridView(props: GridViewProps) {
+  const selectedFeedId = props.selectedFeedId;
+  const setSelectedFeedId = props.setSelectedFeedId;
   const [appSettings, setAppSettings] = appSettingsStore;
   const items = () =>
     flattenAndSort(feeds, selectedFeedId()).filter(i => isEntryVisible(i.entry));
