@@ -21,7 +21,7 @@ export function EntryItem(props: { entry: FeedEntry }) {
   };
 
   return (
-    <li class={styles.entry}>
+    <li class={styles.entry} data-opened-at={props.entry.openedAt}>
       <CheckButton
         checked={!!props.entry.openedAt}
         onClick={() => {

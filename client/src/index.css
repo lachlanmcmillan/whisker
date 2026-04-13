@@ -14,6 +14,9 @@
   --border: #2e2e36;
   --radius: 8px;
 
+  --read-opacity: 0.5;
+  --read-grayscale: grayscale(100%);
+
   font-family: var(--font-body);
   line-height: 1.5;
   font-weight: 400;
