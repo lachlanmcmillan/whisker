@@ -9,6 +9,16 @@
   border-radius: var(--radius);
 }
 
+.entry[data-opened-at] {
+  filter: var(--read-grayscale);
+  opacity: var(--read-opacity);
+}
+
+.entry[data-opened-at]:hover {
+  filter: grayscale(0%);
+  opacity: 1;
+}
+
 .entry:hover {
   background: var(--bg-hover);
 }

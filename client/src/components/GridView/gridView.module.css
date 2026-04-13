@@ -39,8 +39,8 @@
   transition: background 0.15s ease;
 
   &[data-opened-at] {
-    filter: grayscale(100%);
-    opacity: 0.5;
+    filter: var(--read-grayscale);
+    opacity: var(--read-opacity);
     &:hover {
       filter: grayscale(0%);
       opacity: 1;
