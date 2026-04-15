@@ -34,6 +34,12 @@
   word-break: break-all;
 }
 
+.lastRefreshed {
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
 .actions {
   white-space: nowrap;
 }

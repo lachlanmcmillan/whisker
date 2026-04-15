@@ -5,10 +5,22 @@ import { appSettingsStore } from "$stores/settings.store";
 
 const [feeds, setFeeds] = createStore<Feed[]>([]);
 
+function isEntryUnread(entry: FeedEntry): boolean {
+  return !entry.openedAt && !entry.archivedAt;
+}
+
 function isEntryVisible(entry: FeedEntry): boolean {
   const [appSettings] = appSettingsStore;
   if (!appSettings.showUnreadOnly) return true;
-  return !entry.openedAt && !entry.archivedAt;
+  return isEntryUnread(entry);
+}
+
+function getUnreadEntryCount(feed: Pick<Feed, "entries">): number {
+  return feed.entries.filter(isEntryUnread).length;
+}
+
+function getTotalUnreadEntryCount(currentFeeds: readonly Feed[]): number {
+  return currentFeeds.reduce((count, feed) => count + getUnreadEntryCount(feed), 0);
 }
 
 async function loadFeeds() {
@@ -80,4 +92,6 @@ export {
   toggleEntryStarred,
   removeFeed,
   isEntryVisible,
+  getUnreadEntryCount,
+  getTotalUnreadEntryCount,
 };

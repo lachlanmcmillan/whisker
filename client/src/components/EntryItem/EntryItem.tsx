@@ -8,6 +8,7 @@ import { Link } from "$components/Link/Link";
 import { Title } from "$components/Title/Title";
 import { ArchiveButton } from "$components/ArchiveButton/ArchiveButton";
 import { StarButton } from "$components/StarButton/StarButton";
+import { timeAgo } from "$lib/timeAgo";
 import { toggleEntryRead, toggleEntryArchived, toggleEntryStarred } from "$stores/feeds.store";
 import styles from "./entryItem.module.css";
 
@@ -71,10 +72,9 @@ export function EntryItem(props: { entry: FeedEntry }) {
           </Link>
         </Title>
         <p class={styles.meta}>
-          by {props.entry.author} —{" "}
-          {new Date(props.entry.published).toLocaleDateString()}
+          by {props.entry.author} — {timeAgo(props.entry.published)}
           <Show when={props.entry.updated}>
-            {` — Updated: ${new Date(props.entry.updated!).toLocaleDateString()}`}
+            {` — Updated ${timeAgo(props.entry.updated!)}`}
           </Show>
         </p>
         <Show when={props.entry.description}>
