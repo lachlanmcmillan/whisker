@@ -35,6 +35,7 @@ import {
   refreshStoredFeed,
   startBackgroundRefreshScheduler,
 } from "./lib/feed/refresh";
+import { logger } from "./lib/logger";
 import { feeds } from "./models/feeds.model";
 import { ok, err } from "@whisker/common";
 
@@ -186,7 +187,12 @@ function json(data: any, status = 200) {
   });
 }
 
-console.log(`Whisker server running on http://localhost:${server.port}`);
+logger.info({
+  event: "server_started",
+  port: server.port,
+  url: `http://localhost:${server.port}`,
+  commitSha,
+});
 startBackgroundRefreshScheduler();
 
 function errorStatus(code: string): number {

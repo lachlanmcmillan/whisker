@@ -35,7 +35,7 @@ try {
   await ssh("echo ok");
   done("Connected");
 } catch {
-  console.error(chalk.red("✗"), `Failed to connect to ${host}`);
+  process.stderr.write(`${chalk.red("✗")} Failed to connect to ${host}\n`);
   process.exit(1);
 }
 
@@ -43,7 +43,9 @@ step(`Pulling latest code in ${chalk.bold(remoteDir)}...`);
 await ssh(`cd ${remoteDir} && git pull`);
 done("Code updated");
 
-const sha = (await ssh(`cd ${remoteDir} && git rev-parse --short HEAD`)).stdout.toString().trim();
+const sha = (await ssh(`cd ${remoteDir} && git rev-parse --short HEAD`)).stdout
+  .toString()
+  .trim();
 
 step(`Running deploy script...`);
 await ssh(`cd ${remoteDir} && bash scripts/deploy.sh`);
@@ -54,18 +56,19 @@ const monitor = await ssh(
   `for i in 1 2 3 4 5 6 7 8 9 10; do ` +
     `curl -sf http://localhost:${remotePort}/monitor && exit 0; ` +
     `sleep 1; ` +
-  `done; exit 1`
+    `done; exit 1`
 );
 const health = JSON.parse(monitor.stdout.toString());
 if (health.commit !== sha) {
-  console.error(chalk.red("✗"), `Expected commit ${sha}, got ${health.commit}`);
+  process.stderr.write(
+    `${chalk.red("✗")} Expected commit ${sha}, got ${health.commit}\n`
+  );
   process.exit(1);
 }
-done(`Healthy — commit ${chalk.bold(health.commit)}, uptime ${health.uptimeSeconds}s`);
+done(
+  `Healthy — commit ${chalk.bold(health.commit)}, uptime ${health.uptimeSeconds}s`
+);
 
-console.log(
-  chalk.green.bold("\n✓ Deployed"),
-  chalk.bold(sha),
-  chalk.green.bold("to"),
-  chalk.bold(`${host}:${remotePort}`)
+process.stdout.write(
+  `${chalk.green.bold("\n✓ Deployed")} ${chalk.bold(sha)} ${chalk.green.bold("to")} ${chalk.bold(`${host}:${remotePort}`)}\n`
 );
