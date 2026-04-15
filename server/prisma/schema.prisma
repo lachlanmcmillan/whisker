@@ -28,14 +28,15 @@ model entries {
 }
 
 model feeds {
-  id          Int       @id @default(autoincrement())
-  title       String
-  description String    @default("")
-  link        String    @unique
-  feedUrl     String    @default("")
-  author      String    @default("")
-  published   String    @default("")
-  image       String?
-  fetchedAt   String?
-  entries     entries[]
+  id                  Int       @id @default(autoincrement())
+  title               String
+  description         String    @default("")
+  link                String    @unique
+  feedUrl             String    @default("")
+  author              String    @default("")
+  published           String    @default("")
+  image               String?
+  fetchedAt           String?
+  refreshIntervalMins Int? // NULL disables automatic background refresh for this feed.
+  entries             entries[]
 }

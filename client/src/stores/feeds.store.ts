@@ -49,7 +49,18 @@ async function toggleEntryStarred(
 
 async function editFeed(
   feedId: number,
-  data: Partial<Pick<Feed, "title" | "description" | "author" | "image" | "link" | "feedUrl">>
+  data: Partial<
+    Pick<
+      Feed,
+      | "title"
+      | "description"
+      | "author"
+      | "image"
+      | "link"
+      | "feedUrl"
+      | "refreshIntervalMins"
+    >
+  >
 ) {
   await updateFeed(feedId, data);
   await loadFeeds();

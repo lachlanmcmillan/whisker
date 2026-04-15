@@ -4,6 +4,7 @@ export const ErrorCodes = {
   feed_already_exists: "This feed already exists",
   fetch_failed: "Failed to fetch URL",
   parse_failed: "Failed to parse feed",
+  invalid_input: "Invalid input",
 
   // auth
   unauthorized: "Invalid or missing API key",

@@ -1,49 +1,58 @@
 import { db } from "../db";
-import type { entriesModel } from "../generated/prisma/models";
-import type { Feed } from "../lib/types";
+import type { entriesModel, feedsModel } from "../generated/prisma/models";
+import type { Feed } from "../lib/feed/fetch";
 import { ok, err, type Result } from "@whisker/common";
 
 type EntryRow = entriesModel;
-type FeedRow = {
-  id: number;
-  title: string;
-  description: string;
-  link: string;
-  feedUrl: string;
-  author: string;
-  published: string;
-  image: string | null;
-  fetchedAt: string | null;
-};
+type FeedRow = feedsModel;
 
 function readAll() {
   try {
-    const feedRows = db.query<FeedRow, []>(
-      "SELECT * FROM feeds ORDER BY id"
-    ).all();
+    const feedRows = db
+      .query<FeedRow, []>("SELECT * FROM feeds ORDER BY id")
+      .all();
 
-    const result = feedRows.map((row) => {
-      const entryRows = db.query<EntryRow, [number]>(
-        "SELECT * FROM entries WHERE feedId = ? ORDER BY published DESC"
-      ).all(row.id);
+    const result = feedRows.map(row => {
+      const entryRows = db
+        .query<
+          EntryRow,
+          [number]
+        >("SELECT * FROM entries WHERE feedId = ? ORDER BY published DESC")
+        .all(row.id);
 
       return { ...row, entries: entryRows };
     });
 
     return ok(result);
   } catch (e) {
-    return err("db_query_failed", e instanceof Error ? e.message : String(e));
+    return err("db_query_failed", e instanceof Error ? e.message : String(e), {
+      operation: "feeds.readAll",
+    });
+  }
+}
+
+function readAllRows(): Result<FeedRow[]> {
+  try {
+    const rows = db.query<FeedRow, []>("SELECT * FROM feeds ORDER BY id").all();
+    return ok(rows);
+  } catch (e) {
+    return err("db_query_failed", e instanceof Error ? e.message : String(e), {
+      operation: "feeds.readAllRows",
+    });
   }
 }
 
 function readById(id: number): Result<FeedRow | null> {
   try {
-    const row = db.query<FeedRow, [number]>(
-      "SELECT * FROM feeds WHERE id = ?"
-    ).get(id);
+    const row = db
+      .query<FeedRow, [number]>("SELECT * FROM feeds WHERE id = ?")
+      .get(id);
     return ok(row ?? null);
   } catch (e) {
-    return err("db_query_failed", e instanceof Error ? e.message : String(e));
+    return err("db_query_failed", e instanceof Error ? e.message : String(e), {
+      operation: "feeds.readById",
+      feedId: id,
+    });
   }
 }
 
@@ -68,13 +77,20 @@ function upsert(feed: Feed): Result<number> {
       feed.author,
       feed.published,
       feed.image ?? null,
-      feed.fetchedAt ?? null,
+      feed.fetchedAt ?? null
     );
 
-    const feedRow = db.query<{ id: number }, [string]>(
-      "SELECT id FROM feeds WHERE link = ?"
-    ).get(feed.link);
-    if (!feedRow) return err("db_query_failed", "Failed to upsert feed");
+    const feedRow = db
+      .query<{ id: number }, [string]>("SELECT id FROM feeds WHERE link = ?")
+      .get(feed.link);
+    if (!feedRow) {
+      return err("db_query_failed", "Failed to upsert feed", {
+        operation: "feeds.upsert",
+        feedLink: feed.link,
+        feedUrl: feed.feedUrl,
+        title: feed.title,
+      });
+    }
 
     for (const entry of feed.entries) {
       db.query(
@@ -99,13 +115,18 @@ function upsert(feed: Feed): Result<number> {
         entry.updated ?? null,
         entry.description,
         entry.thumbnail ?? null,
-        entry.content ?? null,
+        entry.content ?? null
       );
     }
 
     return ok(feedRow.id);
   } catch (e) {
-    return err("db_query_failed", e instanceof Error ? e.message : String(e));
+    return err("db_query_failed", e instanceof Error ? e.message : String(e), {
+      operation: "feeds.upsert",
+      feedLink: feed.link,
+      feedUrl: feed.feedUrl,
+      title: feed.title,
+    });
   }
 }
 
@@ -114,17 +135,60 @@ function remove(id: number): Result<void> {
     db.query("DELETE FROM feeds WHERE id = ?").run(id);
     return ok(undefined);
   } catch (e) {
-    return err("db_query_failed", e instanceof Error ? e.message : String(e));
+    return err("db_query_failed", e instanceof Error ? e.message : String(e), {
+      operation: "feeds.remove",
+      feedId: id,
+    });
   }
 }
 
-type FeedUpdate = Partial<Pick<FeedRow, "title" | "description" | "author" | "image" | "link" | "feedUrl">>;
+type FeedUpdate = Partial<
+  Pick<
+    FeedRow,
+    | "title"
+    | "description"
+    | "author"
+    | "image"
+    | "link"
+    | "feedUrl"
+    | "refreshIntervalMins"
+  >
+>;
 
 function update(id: number, data: FeedUpdate): Result<void> {
   try {
-    const allowedKeys = ["title", "description", "author", "image", "link", "feedUrl"];
+    if ("refreshIntervalMins" in data) {
+      const interval = data.refreshIntervalMins;
+      const isValidInterval =
+        interval === null ||
+        (typeof interval === "number" &&
+          Number.isInteger(interval) &&
+          interval > 0);
+
+      if (!isValidInterval) {
+        return err(
+          "invalid_input",
+          "refreshIntervalMins must be null or a positive integer",
+          {
+            operation: "feeds.update",
+            feedId: id,
+            refreshIntervalMins: interval,
+          }
+        );
+      }
+    }
+
+    const allowedKeys = [
+      "title",
+      "description",
+      "author",
+      "image",
+      "link",
+      "feedUrl",
+      "refreshIntervalMins",
+    ];
     const setClauses: string[] = [];
-    const values: (string | null)[] = [];
+    const values: (string | number | null)[] = [];
 
     for (const [key, value] of Object.entries(data)) {
       if (allowedKeys.includes(key)) {
@@ -135,18 +199,24 @@ function update(id: number, data: FeedUpdate): Result<void> {
 
     if (setClauses.length === 0) return ok(undefined);
 
-    values.push(String(id));
-    db.query(
-      `UPDATE feeds SET ${setClauses.join(", ")} WHERE id = ?`
-    ).run(...values);
+    values.push(id);
+    db.query(`UPDATE feeds SET ${setClauses.join(", ")} WHERE id = ?`).run(
+      ...values
+    );
 
     return ok(undefined);
   } catch (e) {
-    return err("db_query_failed", e instanceof Error ? e.message : String(e));
+    return err("db_query_failed", e instanceof Error ? e.message : String(e), {
+      operation: "feeds.update",
+      feedId: id,
+      data,
+    });
   }
 }
 
-type EntryUpdate = Partial<Pick<EntryRow, "openedAt" | "archivedAt" | "starredAt">>;
+type EntryUpdate = Partial<
+  Pick<EntryRow, "openedAt" | "archivedAt" | "starredAt">
+>;
 
 function updateEntry(
   feedId: number,
@@ -173,12 +243,18 @@ function updateEntry(
 
     return ok(undefined);
   } catch (e) {
-    return err("db_query_failed", e instanceof Error ? e.message : String(e));
+    return err("db_query_failed", e instanceof Error ? e.message : String(e), {
+      operation: "feeds.updateEntry",
+      feedId,
+      entryId,
+      data,
+    });
   }
 }
 
 export const feeds = {
   readAll,
+  readAllRows,
   readById,
   upsert,
   update,

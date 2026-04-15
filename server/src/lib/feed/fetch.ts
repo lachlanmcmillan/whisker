@@ -1,7 +1,29 @@
-import type { Feed } from "../types";
+import type { entriesModel, feedsModel } from "../../generated/prisma/models";
 import { parseAtomFeed } from "../atom/parse";
 import { parseRssFeed } from "../rss/parse";
 import { ok, err, type Result, type AsyncResult } from "@whisker/common";
+
+type ParsedFeedFields = Pick<
+  feedsModel,
+  "title" | "description" | "link" | "feedUrl" | "author" | "published"
+> & {
+  image?: Exclude<feedsModel["image"], null>;
+  fetchedAt?: Exclude<feedsModel["fetchedAt"], null>;
+  refreshIntervalMins?: feedsModel["refreshIntervalMins"];
+};
+
+export type FeedEntry = Pick<
+  entriesModel,
+  "entryId" | "title" | "link" | "author" | "published" | "description"
+> & {
+  updated?: Exclude<entriesModel["updated"], null>;
+  thumbnail?: Exclude<entriesModel["thumbnail"], null>;
+  content?: Exclude<entriesModel["content"], null>;
+};
+
+export type Feed = ParsedFeedFields & {
+  entries: FeedEntry[];
+};
 
 function parseFeed(xml: string): Result<Feed> {
   if (/<feed[\s>]/i.test(xml)) return parseAtomFeed(xml);

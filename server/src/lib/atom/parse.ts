@@ -1,5 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
-import type { Feed, FeedEntry } from "../types";
+import type { Feed, FeedEntry } from "../feed/fetch";
 import { ok, err, type Result } from "@whisker/common";
 
 const parser = new XMLParser({

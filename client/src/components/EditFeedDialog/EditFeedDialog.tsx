@@ -16,6 +16,9 @@ export function EditFeedDialog(props: EditFeedDialogProps) {
   const [image, setImage] = createSignal(props.feed.image ?? "");
   const [link, setLink] = createSignal(props.feed.link);
   const [feedUrl, setFeedUrl] = createSignal(props.feed.feedUrl);
+  const [refreshIntervalMins, setRefreshIntervalMins] = createSignal(
+    props.feed.refreshIntervalMins?.toString() ?? ""
+  );
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
 
@@ -23,6 +26,18 @@ export function EditFeedDialog(props: EditFeedDialogProps) {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+
+    const refreshIntervalValue = refreshIntervalMins().trim();
+    let parsedRefreshIntervalMins: number | null = null;
+    if (refreshIntervalValue !== "") {
+      const parsed = Number(refreshIntervalValue);
+      if (!Number.isInteger(parsed) || parsed <= 0) {
+        setError("Auto refresh must be a whole number greater than 0");
+        setSubmitting(false);
+        return;
+      }
+      parsedRefreshIntervalMins = parsed;
+    }
 
     try {
       await editFeed(props.feed.id, {
@@ -32,6 +47,7 @@ export function EditFeedDialog(props: EditFeedDialogProps) {
         image: image() || undefined,
         link: link(),
         feedUrl: feedUrl(),
+        refreshIntervalMins: parsedRefreshIntervalMins,
       });
       props.onClose();
     } catch (e) {
@@ -95,6 +111,18 @@ export function EditFeedDialog(props: EditFeedDialogProps) {
               onInput={e => setFeedUrl(e.currentTarget.value)}
               disabled={submitting()}
             />
+          </div>
+          <div class={styles.field}>
+            <label>Auto refresh (minutes)</label>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={refreshIntervalMins()}
+              onInput={e => setRefreshIntervalMins(e.currentTarget.value)}
+              disabled={submitting()}
+            />
+            <p class={styles.help}>Leave blank to disable automatic refresh.</p>
           </div>
           <Show when={error()}>
             {msg => <p class={styles.error}>{msg()}</p>}
