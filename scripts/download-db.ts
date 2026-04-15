@@ -24,4 +24,6 @@ step(`Downloading database from ${chalk.bold(host)}...`);
 await $`scp ${host}:${remoteDir}/whisker.db ${localDest}`;
 done("Database downloaded");
 
-console.log(chalk.green.bold("\n✓ Database saved to"), chalk.bold(localDest));
+process.stdout.write(
+  `${chalk.green.bold("\n✓ Database saved to")} ${chalk.bold(localDest)}\n`
+);

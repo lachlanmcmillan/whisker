@@ -1,5 +1,6 @@
 import { err, ok, type Result } from "@whisker/common";
 import { fetchFeed } from "./fetch";
+import { logger } from "../logger";
 import { feeds } from "../../models/feeds.model";
 
 const BACKGROUND_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
@@ -45,10 +46,10 @@ export async function backgroundRefreshFeeds(): Promise<void> {
   try {
     const feedRowsResult = feeds.readAllRows();
     if (feedRowsResult.error) {
-      console.error(
-        "Background feed refresh failed to load feeds:",
-        feedRowsResult.error.message
-      );
+      logger.err({
+        event: "background_refresh_failed_to_load_feeds",
+        error: feedRowsResult.error,
+      });
       return;
     }
 
@@ -57,10 +58,11 @@ export async function backgroundRefreshFeeds(): Promise<void> {
 
       const refreshResult = await refreshStoredFeed(feed.id);
       if (refreshResult.error) {
-        console.error(
-          `Background refresh failed for feed ${feed.id}:`,
-          refreshResult.error.message
-        );
+        logger.err({
+          event: "background_refresh_failed",
+          feedId: feed.id,
+          error: refreshResult.error,
+        });
       }
     }
   } finally {
@@ -71,6 +73,10 @@ export async function backgroundRefreshFeeds(): Promise<void> {
 export function startBackgroundRefreshScheduler(): void {
   if (backgroundRefreshIntervalId !== null) return;
 
+  logger.info({
+    event: "background_refresh_scheduler_started",
+    intervalMs: BACKGROUND_REFRESH_INTERVAL_MS,
+  });
   void backgroundRefreshFeeds();
   backgroundRefreshIntervalId = setInterval(() => {
     void backgroundRefreshFeeds();
