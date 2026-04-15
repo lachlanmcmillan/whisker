@@ -61,6 +61,7 @@ export interface Feed {
   published: string;
   image?: string;
   fetchedAt?: string;
+  refreshIntervalMins: number | null;
   entries: FeedEntry[];
 }
 
@@ -70,14 +71,24 @@ export async function fetchFeeds(): Promise<Feed[]> {
   return result.data;
 }
 
-export async function addFeed(url: string): Promise<Feed> {
+type EditableFeedFields = Pick<
+  Feed,
+  | "title"
+  | "description"
+  | "author"
+  | "image"
+  | "link"
+  | "feedUrl"
+  | "refreshIntervalMins"
+>;
+
+export async function addFeed(url: string): Promise<void> {
   const res = await fetch(`${BASE}/feeds`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ url }),
   });
-  const result = await handleResponse(res);
-  return result.data;
+  await handleResponse(res);
 }
 
 export async function deleteFeed(id: number): Promise<void> {
@@ -90,7 +101,7 @@ export async function deleteFeed(id: number): Promise<void> {
 
 export async function updateFeed(
   id: number,
-  data: Partial<Pick<Feed, "title" | "description" | "author" | "image" | "link" | "feedUrl">>
+  data: Partial<EditableFeedFields>
 ): Promise<void> {
   const res = await fetch(`${BASE}/feeds/${id}`, {
     method: "PATCH",
@@ -100,13 +111,12 @@ export async function updateFeed(
   await handleResponse(res);
 }
 
-export async function refreshFeed(id: number): Promise<Feed> {
+export async function refreshFeed(id: number): Promise<void> {
   const res = await fetch(`${BASE}/feeds/${id}/refresh`, {
     method: "POST",
     headers: authHeaders(),
   });
-  const result = await handleResponse(res);
-  return result.data;
+  await handleResponse(res);
 }
 
 export async function query(sql: string): Promise<Record<string, unknown>[]> {

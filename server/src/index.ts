@@ -1,13 +1,15 @@
 const startedAt = Date.now();
 
-const commitSha = process.env.COMMIT_SHA ?? (() => {
-  try {
-    const result = Bun.spawnSync(["git", "rev-parse", "--short", "HEAD"]);
-    return result.stdout.toString().trim() || "dev";
-  } catch {
-    return "dev";
-  }
-})();
+const commitSha =
+  process.env.COMMIT_SHA ??
+  (() => {
+    try {
+      const result = Bun.spawnSync(["git", "rev-parse", "--short", "HEAD"]);
+      return result.stdout.toString().trim() || "dev";
+    } catch {
+      return "dev";
+    }
+  })();
 
 function formatISOWithTZ(date: Date, timeZone: string): string {
   const fmt = new Intl.DateTimeFormat("en-CA", {
@@ -29,6 +31,10 @@ function formatISOWithTZ(date: Date, timeZone: string): string {
 
 import { db } from "./db";
 import { fetchFeed } from "./lib/feed/fetch";
+import {
+  refreshStoredFeed,
+  startBackgroundRefreshScheduler,
+} from "./lib/feed/refresh";
 import { feeds } from "./models/feeds.model";
 import { ok, err } from "@whisker/common";
 
@@ -56,7 +62,14 @@ const server = Bun.serve({
     if (apiKey) {
       const auth = req.headers.get("Authorization");
       if (auth !== `Bearer ${apiKey}`) {
-        return json(err("unauthorized", "Invalid or missing API key"), 401);
+        return json(
+          err("unauthorized", "Invalid or missing API key", {
+            method,
+            pathname: url.pathname,
+            hasAuthorizationHeader: auth !== null,
+          }),
+          401
+        );
       }
     }
 
@@ -96,23 +109,9 @@ const server = Bun.serve({
     // POST /feeds/:id/refresh
     if (method === "POST" && url.pathname.match(/^\/feeds\/\d+\/refresh$/)) {
       const id = parseInt(url.pathname.split("/")[2]);
-
-      const feedResult = feeds.readById(id);
-      if (feedResult.error) return json(feedResult, 500);
-      if (!feedResult.data)
-        return json(
-          { error: { code: "feed_not_found", message: "Feed not found" } },
-          404
-        );
-
-      const feedUrl = feedResult.data.feedUrl || feedResult.data.link;
-      const fetchResult = await fetchFeed(feedUrl);
-      if (fetchResult.error) return json(fetchResult, 500);
-
-      const upsertResult = feeds.upsert(fetchResult.data);
-      if (upsertResult.error) return json(upsertResult, 500);
-
-      return json(fetchResult);
+      const result = await refreshStoredFeed(id);
+      if (result.error) return json(result, errorStatus(result.error.code));
+      return json(ok(undefined));
     }
 
     // PATCH /feeds/:id — update feed metadata
@@ -120,7 +119,7 @@ const server = Bun.serve({
       const id = parseInt(url.pathname.split("/")[2]);
       const body = await req.json();
       const result = feeds.update(id, body);
-      if (result.error) return json(result, 500);
+      if (result.error) return json(result, errorStatus(result.error.code));
       return json(result);
     }
 
@@ -140,7 +139,15 @@ const server = Bun.serve({
     if (method === "POST" && url.pathname === "/query") {
       const body = await req.json();
       if (!body.sql)
-        return json(err("db_query_failed", "sql is required"), 400);
+        return json(
+          err("db_query_failed", "sql is required", {
+            method,
+            pathname: url.pathname,
+            bodyKeys:
+              body && typeof body === "object" ? Object.keys(body) : null,
+          }),
+          400
+        );
 
       try {
         const stmt = db.query(body.sql);
@@ -148,7 +155,11 @@ const server = Bun.serve({
         return json(ok(rows));
       } catch (e) {
         return json(
-          err("db_query_failed", e instanceof Error ? e.message : String(e)),
+          err("db_query_failed", e instanceof Error ? e.message : String(e), {
+            method,
+            pathname: url.pathname,
+            sql: body.sql,
+          }),
           400
         );
       }
@@ -176,3 +187,11 @@ function json(data: any, status = 200) {
 }
 
 console.log(`Whisker server running on http://localhost:${server.port}`);
+startBackgroundRefreshScheduler();
+
+function errorStatus(code: string): number {
+  if (code === "invalid_input") return 400;
+  if (code === "feed_not_found") return 404;
+  if (code === "unauthorized") return 401;
+  return 500;
+}

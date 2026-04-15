@@ -44,6 +44,7 @@ export function FeedManager() {
             <th>Title</th>
             <th>Author</th>
             <th>Entries</th>
+            <th>Auto Refresh</th>
             <th>Last refreshed</th>
             <th>Feed URL</th>
             <th></th>
@@ -63,6 +64,11 @@ export function FeedManager() {
                   </td>
                   <td>{feed.author}</td>
                   <td>{feed.entries.length}</td>
+                  <td>
+                    {feed.refreshIntervalMins === null ?
+                      "Off"
+                    : `${feed.refreshIntervalMins} min`}
+                  </td>
                   <td class={styles.lastRefreshed} title={lastRefreshed.title}>
                     {lastRefreshed.label}
                   </td>
@@ -79,10 +85,7 @@ export function FeedManager() {
       </table>
       <Show when={editingFeed()}>
         {feed => (
-          <EditFeedDialog
-            feed={feed()}
-            onClose={() => setEditingFeed(null)}
-          />
+          <EditFeedDialog feed={feed()} onClose={() => setEditingFeed(null)} />
         )}
       </Show>
     </>
