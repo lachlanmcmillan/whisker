@@ -54,6 +54,10 @@ export function FeedManager() {
           <For each={[...feeds]}>
             {feed => {
               const lastRefreshed = formatLastRefreshed(feed.fetchedAt);
+              const autoRefreshLabel =
+                feed.refreshIntervalMins == null
+                  ? "off"
+                  : `${feed.refreshIntervalMins} min`;
 
               return (
                 <tr>
@@ -64,11 +68,7 @@ export function FeedManager() {
                   </td>
                   <td>{feed.author}</td>
                   <td>{feed.entries.length}</td>
-                  <td>
-                    {feed.refreshIntervalMins === null ?
-                      "Off"
-                    : `${feed.refreshIntervalMins} min`}
-                  </td>
+                  <td>{autoRefreshLabel}</td>
                   <td class={styles.lastRefreshed} title={lastRefreshed.title}>
                     {lastRefreshed.label}
                   </td>
