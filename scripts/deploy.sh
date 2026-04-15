@@ -7,6 +7,9 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 cd "$ROOT_DIR/server"
 
+# load the environment variables, including DB_PATH
+source server/.env.local
+
 echo "==> Stopping App"
 pm2 stop "whisker"
 
@@ -14,7 +17,7 @@ echo "==> Installing dependencies"
 bun install
 
 echo "==> Backing up database"
-cp $DB_PATH $DB_PATH.$CURRENT_DATE.bak
+cp "$DB_PATH" "$DB_PATH.$CURRENT_DATE.bak"
 
 echo "==> Running migrations"
 bunx --bun prisma migrate deploy
