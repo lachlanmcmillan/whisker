@@ -21,6 +21,12 @@
   margin-left: 1rem;
 }
 
+.error {
+  color: #d9534f;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

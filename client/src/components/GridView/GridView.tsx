@@ -7,7 +7,15 @@ import { CheckButton } from "$components/CheckButton/CheckButton";
 import { timeAgo } from "$lib/timeAgo";
 import { ArchiveButton } from "$components/ArchiveButton/ArchiveButton";
 import { StarButton } from "$components/StarButton/StarButton";
-import { feeds, toggleEntryRead, toggleEntryArchived, toggleEntryStarred, isEntryVisible } from "$stores/feeds.store";
+import {
+  feeds,
+  toggleEntryRead,
+  toggleEntryArchived,
+  toggleEntryStarred,
+  isEntryVisible,
+  getUnreadEntryCount,
+  getTotalUnreadEntryCount,
+} from "$stores/feeds.store";
 import { appSettingsStore } from "$stores/settings.store";
 import styles from "./gridView.module.css";
 
@@ -38,12 +46,15 @@ function flattenAndSort(
 
 interface GridViewProps {
   selectedFeedId: () => number | null;
-  setSelectedFeedId: (id: number | null) => void;
+  onSelectFeed: (id: number | null) => void;
+  onRefreshFeed: () => Promise<void>;
+  refreshing: () => boolean;
+  refreshError: () => string | null;
 }
 
 export function GridView(props: GridViewProps) {
   const selectedFeedId = props.selectedFeedId;
-  const setSelectedFeedId = props.setSelectedFeedId;
+  const onSelectFeed = props.onSelectFeed;
   const [appSettings, setAppSettings] = appSettingsStore;
   const items = () =>
     flattenAndSort(feeds, selectedFeedId()).filter(i => isEntryVisible(i.entry));
@@ -58,17 +69,17 @@ export function GridView(props: GridViewProps) {
         <nav class={styles.feedTabs}>
           <Button
             active={selectedFeedId() === null}
-            onClick={() => setSelectedFeedId(null)}
+            onClick={() => onSelectFeed(null)}
           >
-            All
+            {`All (${getTotalUnreadEntryCount(feeds)})`}
           </Button>
           <For each={[...feeds]}>
             {f => (
               <Button
                 active={selectedFeedId() === f.id}
-                onClick={() => setSelectedFeedId(f.id)}
+                onClick={() => onSelectFeed(f.id)}
               >
-                {f.title}
+                {`${f.title} (${getUnreadEntryCount(f)})`}
               </Button>
             )}
           </For>
@@ -95,7 +106,17 @@ export function GridView(props: GridViewProps) {
         </div>
       </div>
       <Show when={selectedFeed()}>
-        {feed => <FeedHeader feed={feed()} />}
+        {feed => (
+          <div>
+            <FeedHeader feed={feed()} />
+            <Button onClick={props.onRefreshFeed} disabled={props.refreshing()}>
+              {props.refreshing() ? "Refreshing..." : "Refresh"}
+            </Button>
+            <Show when={props.refreshError()}>
+              <p class={styles.error}>{props.refreshError()}</p>
+            </Show>
+          </div>
+        )}
       </Show>
       <ul class={styles.grid}>
         <For each={items()}>

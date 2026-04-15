@@ -8,7 +8,13 @@ import { LoginForm } from "$components/LoginForm/LoginForm";
 import { FeedManager } from "$components/FeedManager/FeedManager";
 import { DatabaseExplorer } from "./DatabaseExplorer";
 import { getApiKey, setOnUnauthorized, refreshFeed } from "$lib/api";
-import { feeds, loadFeeds, isEntryVisible } from "$stores/feeds.store";
+import {
+  feeds,
+  loadFeeds,
+  isEntryVisible,
+  getUnreadEntryCount,
+  getTotalUnreadEntryCount,
+} from "$stores/feeds.store";
 import { appSettingsStore } from "$stores/settings.store";
 import styles from "./App.module.css";
 
@@ -41,6 +47,11 @@ function App() {
     const data = await loadFeeds();
     const lastFeed = data[data.length - 1];
     if (lastFeed) setSelectedFeedId(lastFeed.id);
+  };
+
+  const handleSelectFeed = (id: number | null) => {
+    setSelectedFeedId(id);
+    setRefreshError(null);
   };
 
   const handleRefreshFeed = async () => {
@@ -112,23 +123,17 @@ function App() {
                   <nav class={styles.feedTabs}>
                     <Button
                       active={selectedFeedId() === null}
-                      onClick={() => {
-                        setSelectedFeedId(null);
-                        setRefreshError(null);
-                      }}
+                      onClick={() => handleSelectFeed(null)}
                     >
-                      All
+                      {`All (${getTotalUnreadEntryCount(feeds)})`}
                     </Button>
                     <For each={[...feeds]}>
                       {f => (
                         <Button
                           active={selectedFeedId() === f.id}
-                          onClick={() => {
-                            setSelectedFeedId(f.id);
-                            setRefreshError(null);
-                          }}
+                          onClick={() => handleSelectFeed(f.id)}
                         >
-                          {f.title}
+                          {`${f.title} (${getUnreadEntryCount(f)})`}
                         </Button>
                       )}
                     </For>
@@ -183,7 +188,13 @@ function App() {
               </>
             }
           >
-            <GridView selectedFeedId={selectedFeedId} setSelectedFeedId={setSelectedFeedId} />
+            <GridView
+              selectedFeedId={selectedFeedId}
+              onSelectFeed={handleSelectFeed}
+              onRefreshFeed={handleRefreshFeed}
+              refreshing={refreshing}
+              refreshError={refreshError}
+            />
           </Show>
         </div>
       </Show>
