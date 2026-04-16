@@ -1,4 +1,5 @@
-import type { entriesModel, feedsModel } from "../../generated/prisma/models";
+import type { entriesModel } from "../../generated/prisma/models/entries";
+import type { feedsModel } from "../../generated/prisma/models/feeds";
 import { parseAtomFeed } from "../atom/parse";
 import { parseRssFeed } from "../rss/parse";
 import { ok, err, type Result, type AsyncResult } from "@whisker/common";

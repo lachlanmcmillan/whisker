@@ -102,13 +102,14 @@ export async function deleteFeed(id: number): Promise<void> {
 export async function updateFeed(
   id: number,
   data: Partial<EditableFeedFields>
-): Promise<void> {
+): Promise<Feed> {
   const res = await fetch(`${BASE}/feeds/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(data),
   });
-  await handleResponse(res);
+  const result = await handleResponse(res);
+  return result.data;
 }
 
 export async function refreshFeed(id: number): Promise<void> {
@@ -133,7 +134,7 @@ export async function updateEntry(
   feedId: number,
   entryId: string,
   data: Partial<Pick<FeedEntry, "openedAt" | "archivedAt" | "starredAt">>
-): Promise<void> {
+): Promise<FeedEntry> {
   const res = await fetch(
     `${BASE}/entries/${feedId}/${encodeURIComponent(entryId)}`,
     {
@@ -142,5 +143,6 @@ export async function updateEntry(
       body: JSON.stringify(data),
     }
   );
-  await handleResponse(res);
+  const result = await handleResponse(res);
+  return result.data;
 }

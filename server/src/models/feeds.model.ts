@@ -1,10 +1,12 @@
 import { db } from "../db";
-import type { entriesModel, feedsModel } from "../generated/prisma/models";
+import type { entriesModel } from "../generated/prisma/models/entries";
+import type { feedsModel } from "../generated/prisma/models/feeds";
 import type { Feed } from "../lib/feed/fetch";
 import { ok, err, type Result } from "@whisker/common";
 
 type EntryRow = entriesModel;
 type FeedRow = feedsModel;
+type FeedWithEntries = FeedRow & { entries: EntryRow[] };
 
 function readAll() {
   try {
@@ -31,6 +33,30 @@ function readAll() {
   }
 }
 
+function readWithEntriesById(id: number): Result<FeedWithEntries | null> {
+  try {
+    const row = db
+      .query<FeedRow, [number]>("SELECT * FROM feeds WHERE id = ?")
+      .get(id);
+
+    if (!row) return ok(null);
+
+    const entries = db
+      .query<
+        EntryRow,
+        [number]
+      >("SELECT * FROM entries WHERE feedId = ? ORDER BY published DESC")
+      .all(id);
+
+    return ok({ ...row, entries });
+  } catch (e) {
+    return err("db_query_failed", e instanceof Error ? e.message : String(e), {
+      operation: "feeds.readWithEntriesById",
+      feedId: id,
+    });
+  }
+}
+
 function readAllRows(): Result<FeedRow[]> {
   try {
     const rows = db.query<FeedRow, []>("SELECT * FROM feeds ORDER BY id").all();
@@ -52,6 +78,27 @@ function readById(id: number): Result<FeedRow | null> {
     return err("db_query_failed", e instanceof Error ? e.message : String(e), {
       operation: "feeds.readById",
       feedId: id,
+    });
+  }
+}
+
+function readEntryById(
+  feedId: number,
+  entryId: string
+): Result<EntryRow | null> {
+  try {
+    const row = db
+      .query<
+        EntryRow,
+        [number, string]
+      >("SELECT * FROM entries WHERE feedId = ? AND entryId = ?")
+      .get(feedId, entryId);
+    return ok(row ?? null);
+  } catch (e) {
+    return err("db_query_failed", e instanceof Error ? e.message : String(e), {
+      operation: "feeds.readEntryById",
+      feedId,
+      entryId,
     });
   }
 }
@@ -155,7 +202,7 @@ type FeedUpdate = Partial<
   >
 >;
 
-function update(id: number, data: FeedUpdate): Result<void> {
+function update(id: number, data: FeedUpdate): Result<FeedWithEntries> {
   try {
     if ("refreshIntervalMins" in data) {
       const interval = data.refreshIntervalMins;
@@ -197,14 +244,23 @@ function update(id: number, data: FeedUpdate): Result<void> {
       }
     }
 
-    if (setClauses.length === 0) return ok(undefined);
+    if (setClauses.length > 0) {
+      values.push(id);
+      db.query(`UPDATE feeds SET ${setClauses.join(", ")} WHERE id = ?`).run(
+        ...values
+      );
+    }
 
-    values.push(id);
-    db.query(`UPDATE feeds SET ${setClauses.join(", ")} WHERE id = ?`).run(
-      ...values
-    );
+    const feedResult = readWithEntriesById(id);
+    if (feedResult.error) return feedResult;
+    if (!feedResult.data) {
+      return err("feed_not_found", "Feed not found", {
+        operation: "feeds.update",
+        feedId: id,
+      });
+    }
 
-    return ok(undefined);
+    return ok(feedResult.data);
   } catch (e) {
     return err("db_query_failed", e instanceof Error ? e.message : String(e), {
       operation: "feeds.update",
@@ -222,7 +278,7 @@ function updateEntry(
   feedId: number,
   entryId: string,
   data: EntryUpdate
-): Result<void> {
+): Result<EntryRow> {
   try {
     const setClauses: string[] = [];
     const values: (string | null)[] = [];
@@ -234,14 +290,24 @@ function updateEntry(
       }
     }
 
-    if (setClauses.length === 0) return ok(undefined);
+    if (setClauses.length > 0) {
+      values.push(String(feedId), entryId);
+      db.query(
+        `UPDATE entries SET ${setClauses.join(", ")} WHERE feedId = ? AND entryId = ?`
+      ).run(...values);
+    }
 
-    values.push(String(feedId), entryId);
-    db.query(
-      `UPDATE entries SET ${setClauses.join(", ")} WHERE feedId = ? AND entryId = ?`
-    ).run(...values);
+    const entryResult = readEntryById(feedId, entryId);
+    if (entryResult.error) return entryResult;
+    if (!entryResult.data) {
+      return err("entry_not_found", "Entry not found", {
+        operation: "feeds.updateEntry",
+        feedId,
+        entryId,
+      });
+    }
 
-    return ok(undefined);
+    return ok(entryResult.data);
   } catch (e) {
     return err("db_query_failed", e instanceof Error ? e.message : String(e), {
       operation: "feeds.updateEntry",
@@ -256,6 +322,7 @@ export const feeds = {
   readAll,
   readAllRows,
   readById,
+  readWithEntriesById,
   upsert,
   update,
   remove,
