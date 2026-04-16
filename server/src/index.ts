@@ -132,7 +132,7 @@ const server = Bun.serve({
       const body = await req.json();
 
       const result = feeds.updateEntry(feedId, entryId, body);
-      if (result.error) return json(result, 500);
+      if (result.error) return json(result, errorStatus(result.error.code));
       return json(result);
     }
 
@@ -198,6 +198,7 @@ startBackgroundRefreshScheduler();
 function errorStatus(code: string): number {
   if (code === "invalid_input") return 400;
   if (code === "feed_not_found") return 404;
+  if (code === "entry_not_found") return 404;
   if (code === "unauthorized") return 401;
   return 500;
 }

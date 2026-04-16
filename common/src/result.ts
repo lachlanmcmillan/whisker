@@ -1,6 +1,7 @@
 export const ErrorCodes = {
   // feed
   feed_not_found: "No RSS or Atom feed found at this URL",
+  entry_not_found: "Entry not found",
   feed_already_exists: "This feed already exists",
   fetch_failed: "Failed to fetch URL",
   parse_failed: "Failed to parse feed",
