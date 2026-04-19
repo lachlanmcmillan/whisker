@@ -13,15 +13,29 @@
 
 import { $ } from "bun";
 import chalk from "chalk";
-import { host, remoteDir, requireEnv, step, done } from "./zz_common";
+import { host, remoteDir, requireEnv, ssh, step, done } from "./zz_common";
 
 requireEnv("DEPLOY_SSH_HOST", host);
 requireEnv("DEPLOY_REMOTE_DIR", remoteDir);
 
 const localDest = "server/whisker.db";
 
-step(`Downloading database from ${chalk.bold(host)}...`);
-await $`scp ${host}:${remoteDir}/whisker.db ${localDest}`;
+const remoteEnvFile = `${remoteDir}/server/.env.local`;
+step(`Reading remote DB_PATH from ${chalk.bold(remoteEnvFile)}...`);
+const remoteDbPath = (
+  await ssh(
+    `cd ${remoteDir}/server && realpath "$(grep -E '^DB_PATH=' ${remoteEnvFile} | tail -n1 | cut -d= -f2-)"`
+  ).text()
+).trim();
+if (!remoteDbPath) {
+  process.stderr.write(
+    `${chalk.red(`DB_PATH not found in ${remoteEnvFile}`)}\n`
+  );
+  process.exit(1);
+}
+
+step(`Downloading ${chalk.bold(remoteDbPath)} from ${chalk.bold(host)}...`);
+await $`scp ${host}:${remoteDbPath} ${localDest}`;
 done("Database downloaded");
 
 process.stdout.write(
