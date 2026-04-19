@@ -4,11 +4,13 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "db:generate": "bunx --bun prisma generate",
+    "db:migrate-dev": "bunx --bun prisma migrate dev",
+    "db:migrate": "bunx --bun prisma migrate deploy",
+    "db:reset": "bunx --bun prisma migrate reset",
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
-    "tsc": "tsc",
-    "db:migrate": "bunx --bun prisma migrate deploy",
-    "db:generate": "bunx --bun prisma generate"
+    "tsc": "tsc"
   },
   "dependencies": {
     "@prisma/client": "^7.7.0",
