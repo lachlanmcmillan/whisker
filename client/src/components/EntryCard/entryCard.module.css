@@ -6,6 +6,7 @@
   background: var(--surface-card);
   padding: var(--card-pad);
   border-radius: var(--radius-lg);
+  min-width: 0;
 }
 
 .card[data-read="true"] {

@@ -6,6 +6,7 @@
   background: var(--surface-card);
   border-radius: var(--radius-lg);
   cursor: pointer;
+  min-width: 0;
 }
 
 .row[data-read="true"] {
