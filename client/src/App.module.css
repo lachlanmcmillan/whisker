@@ -1,6 +1,5 @@
 .root {
   display: flex;
-  background: var(--bg);
   color: var(--fg);
   min-height: 100vh;
   font-family: var(--font-body);
@@ -473,7 +472,7 @@
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 10px 30px oklch(0 0 0 / 0.4);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 .popoverInput {

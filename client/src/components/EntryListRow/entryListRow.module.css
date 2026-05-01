@@ -2,8 +2,9 @@
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 12px 8px;
-  border-bottom: 1px solid var(--border);
+  padding: var(--card-pad);
+  background: var(--surface-card);
+  border-radius: var(--radius-lg);
   cursor: pointer;
 }
 

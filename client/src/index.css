@@ -8,30 +8,32 @@
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   /* Surface palette (warm dark) */
-  --bg: oklch(0.16 0.012 60);
-  --bg-deep: oklch(0.13 0.012 60);
-  --surface-1: oklch(0.20 0.015 60);
-  --surface-2: oklch(0.245 0.018 60);
-  --surface-3: oklch(0.30 0.02 60);
-  --border: oklch(0.28 0.02 60);
+  --bg: rgb(17, 12, 8);
+  --bg-deep: rgb(11, 6, 4);
+  --surface-1: rgb(27, 21, 15);
+  --surface-2: rgb(39, 31, 24);
+  --surface-3: rgb(54, 44, 36);
+  --border: rgb(48, 39, 31);
 
   /* Foreground ramp */
-  --fg: oklch(0.97 0.008 80);
-  --fg-2: oklch(0.82 0.015 70);
-  --fg-3: oklch(0.62 0.018 70);
-  --fg-4: oklch(0.45 0.018 70);
+  --fg: rgb(248, 245, 239);
+  --fg-2: rgb(203, 195, 186);
+  --fg-3: rgb(141, 132, 123);
+  --fg-4: rgb(92, 84, 75);
 
   /* Accent (vivid amber) */
-  --accent: oklch(0.80 0.165 65);
-  --accent-deep: oklch(0.62 0.18 50);
-  --accent-tint: oklch(0.80 0.165 65 / 0.12);
-  --accent-glow: oklch(0.80 0.165 65 / 0.4);
-  --accent-fg: oklch(0.18 0.04 60);
+  --accent: rgb(255, 164, 48);
+  --accent-deep: rgb(215, 92, 0);
+  --accent-tint: rgba(255, 164, 48, 0.12);
+  --accent-glow: rgba(255, 164, 48, 0.4);
+  --accent-fg: rgb(30, 13, 1);
 
   /* Misc */
   --danger: #d9534f;
   --radius: 8px;
   --radius-lg: 10px;
+  --surface-card: rgba(255, 255, 255, 0.025);
+  --card-pad: 8px;
   --read-opacity: 0.5;
   --read-grayscale: grayscale(100%);
 
@@ -62,6 +64,11 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background:
+    radial-gradient(ellipse at top left, rgba(255, 164, 48, 0.04), transparent 60%),
+    radial-gradient(ellipse at bottom right, rgba(255, 255, 255, 0.025), transparent 65%),
+    var(--bg);
+  background-attachment: fixed;
 }
 
 ::-webkit-scrollbar {
