@@ -1,6 +1,13 @@
 import { createStore, reconcile } from "solid-js/store";
 import type { Feed, FeedEntry } from "$lib/api";
-import { fetchFeeds, updateEntry, updateFeed, deleteFeed } from "$lib/api";
+import {
+  fetchFeeds,
+  updateEntry,
+  updateFeed,
+  deleteFeed,
+  assignTagToFeed,
+  unassignTagFromFeed,
+} from "$lib/api";
 import { appSettingsStore } from "$stores/settings.store";
 
 const [feeds, setFeeds] = createStore<Feed[]>([]);
@@ -83,6 +90,16 @@ async function removeFeed(feedId: number) {
   await loadFeeds();
 }
 
+async function attachTag(feedId: number, name: string) {
+  await assignTagToFeed(feedId, { name });
+  await loadFeeds();
+}
+
+async function detachTag(feedId: number, tagId: number) {
+  await unassignTagFromFeed(feedId, tagId);
+  await loadFeeds();
+}
+
 export {
   feeds,
   loadFeeds,
@@ -91,6 +108,8 @@ export {
   toggleEntryArchived,
   toggleEntryStarred,
   removeFeed,
+  attachTag,
+  detachTag,
   isEntryVisible,
   getUnreadEntryCount,
   getTotalUnreadEntryCount,

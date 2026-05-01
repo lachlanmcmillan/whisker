@@ -51,6 +51,11 @@ export interface FeedEntry {
   starredAt?: string | null;
 }
 
+export interface Tag {
+  id: number;
+  name: string;
+}
+
 export interface Feed {
   id: number;
   title: string;
@@ -63,6 +68,7 @@ export interface Feed {
   fetchedAt?: string;
   refreshIntervalMins: number | null;
   entries: FeedEntry[];
+  tags: Tag[];
 }
 
 export async function fetchFeeds(): Promise<Feed[]> {
@@ -126,6 +132,44 @@ export async function query(sql: string): Promise<Record<string, unknown>[]> {
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ sql }),
   });
+  const result = await handleResponse(res);
+  return result.data;
+}
+
+export async function listTagsForFeed(feedId: number): Promise<Tag[]> {
+  const res = await fetch(`${BASE}/feeds/${feedId}/tags`, {
+    headers: authHeaders(),
+  });
+  const result = await handleResponse(res);
+  return result.data;
+}
+
+export async function assignTagToFeed(
+  feedId: number,
+  input: { tagId: number } | { name: string }
+): Promise<Tag> {
+  const res = await fetch(`${BASE}/feeds/${feedId}/tags`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(input),
+  });
+  const result = await handleResponse(res);
+  return result.data;
+}
+
+export async function unassignTagFromFeed(
+  feedId: number,
+  tagId: number
+): Promise<void> {
+  const res = await fetch(`${BASE}/feeds/${feedId}/tags/${tagId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  await handleResponse(res);
+}
+
+export async function listTags(): Promise<Tag[]> {
+  const res = await fetch(`${BASE}/tags`, { headers: authHeaders() });
   const result = await handleResponse(res);
   return result.data;
 }
