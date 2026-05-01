@@ -3,34 +3,61 @@ import type { entriesModel } from "../generated/prisma/models/entries";
 import type { feedsModel } from "../generated/prisma/models/feeds";
 import type { Feed } from "../lib/feed/fetch";
 import { ok, err, type Result } from "@whisker/common";
+import type { TagRow } from "./tags.model";
 
 type EntryRow = entriesModel;
 type FeedRow = feedsModel;
-type FeedWithEntries = FeedRow & { entries: EntryRow[] };
+type FeedWithEntries = FeedRow & { entries: EntryRow[]; tags: TagRow[] };
 
-function readAll() {
+function readTagsForFeeds(feedIds: number[]): Map<number, TagRow[]> {
+  const result = new Map<number, TagRow[]>();
+  if (feedIds.length === 0) return result;
+  const placeholders = feedIds.map(() => "?").join(",");
+  const rows = db
+    .query<
+      { feedId: number; id: number; name: string },
+      number[]
+    >(`SELECT ft.feedId AS feedId, t.id AS id, t.name AS name
+       FROM FeedTags ft INNER JOIN Tags t ON t.id = ft.tagId
+       WHERE ft.feedId IN (${placeholders})
+       ORDER BY t.id ASC`)
+    .all(...feedIds);
+  for (const id of feedIds) result.set(id, []);
+  for (const row of rows) {
+    const list = result.get(row.feedId) ?? [];
+    list.push({ id: row.id, name: row.name });
+    result.set(row.feedId, list);
+  }
+  return result;
+}
+
+
+function readAll(): Result<FeedWithEntries[]> {
   try {
     const feedRows = db
       .query<FeedRow, []>("SELECT * FROM feeds ORDER BY id")
       .all();
-
-    const result = feedRows.map(row => {
-      const entryRows = db
+    const ids = feedRows.map((r) => r.id);
+    const tagsByFeed = readTagsForFeeds(ids);
+    const result = feedRows.map((row) => {
+      const entries = db
         .query<
           EntryRow,
           [number]
         >("SELECT * FROM entries WHERE feedId = ? ORDER BY published DESC")
         .all(row.id);
-
-      return { ...row, entries: entryRows };
+      return { ...row, entries, tags: tagsByFeed.get(row.id) ?? [] };
     });
-
     return ok(result);
   } catch (e) {
     return err("db_query_failed", e instanceof Error ? e.message : String(e), {
       operation: "feeds.readAll",
     });
   }
+}
+
+function readAllRows(): Result<FeedRow[]> {
+  return db.safeQuery<FeedRow>("SELECT * FROM feeds ORDER BY id", []);
 }
 
 function readWithEntriesById(id: number): Result<FeedWithEntries | null> {
@@ -48,22 +75,13 @@ function readWithEntriesById(id: number): Result<FeedWithEntries | null> {
       >("SELECT * FROM entries WHERE feedId = ? ORDER BY published DESC")
       .all(id);
 
-    return ok({ ...row, entries });
+    const tags = readTagsForFeeds([id]).get(id) ?? [];
+
+    return ok({ ...row, entries, tags });
   } catch (e) {
     return err("db_query_failed", e instanceof Error ? e.message : String(e), {
       operation: "feeds.readWithEntriesById",
       feedId: id,
-    });
-  }
-}
-
-function readAllRows(): Result<FeedRow[]> {
-  try {
-    const rows = db.query<FeedRow, []>("SELECT * FROM feeds ORDER BY id").all();
-    return ok(rows);
-  } catch (e) {
-    return err("db_query_failed", e instanceof Error ? e.message : String(e), {
-      operation: "feeds.readAllRows",
     });
   }
 }

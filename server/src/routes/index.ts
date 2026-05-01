@@ -2,6 +2,7 @@ import { corsHeaders, json } from "../lib/http";
 import { err } from "@whisker/common";
 import * as entries from "./entries";
 import * as feeds from "./feeds";
+import * as tags from "./tags";
 import { handleMonitor } from "./monitor";
 import { handleQuery } from "./query";
 
@@ -54,6 +55,41 @@ export async function dispatch(req: Request): Promise<Response> {
   if (method === "PATCH" && pathname.match(/^\/feeds\/\d+$/)) {
     const id = parseInt(pathname.split("/")[2]);
     return feeds.handleUpdate(id, req);
+  }
+
+  if (method === "GET" && pathname.match(/^\/feeds\/\d+\/tags$/)) {
+    const id = parseInt(pathname.split("/")[2]);
+    return feeds.handleListTags(id);
+  }
+
+  if (method === "POST" && pathname.match(/^\/feeds\/\d+\/tags$/)) {
+    const id = parseInt(pathname.split("/")[2]);
+    return feeds.handleAssignTag(id, req);
+  }
+
+  if (method === "DELETE" && pathname.match(/^\/feeds\/\d+\/tags\/\d+$/)) {
+    const parts = pathname.split("/");
+    const feedId = parseInt(parts[2]);
+    const tagId = parseInt(parts[4]);
+    return feeds.handleUnassignTag(feedId, tagId);
+  }
+
+  if (method === "GET" && pathname === "/tags") {
+    return tags.handleList();
+  }
+
+  if (method === "POST" && pathname === "/tags") {
+    return tags.handleCreate(req);
+  }
+
+  if (method === "PUT" && pathname.match(/^\/tags\/\d+$/)) {
+    const id = parseInt(pathname.split("/")[2]);
+    return tags.handleRename(id, req);
+  }
+
+  if (method === "DELETE" && pathname.match(/^\/tags\/\d+$/)) {
+    const id = parseInt(pathname.split("/")[2]);
+    return tags.handleDelete(id);
   }
 
   if (method === "PATCH" && pathname.match(/^\/entries\/\d+\/[^/]+$/)) {

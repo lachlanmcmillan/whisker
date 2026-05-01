@@ -7,6 +7,10 @@ export const ErrorCodes = {
   parse_failed: "Failed to parse feed",
   invalid_input: "Invalid input",
 
+  // tags
+  tag_not_found: "Tag not found",
+  tag_conflict: "A tag with that name already exists",
+
   // auth
   unauthorized: "Invalid or missing API key",
 
