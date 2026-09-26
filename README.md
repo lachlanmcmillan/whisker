@@ -31,6 +31,8 @@ Current deployment: https://whisker.lachy-mcm-services.workers.dev
 
 The owner can create one-time invitation and reset links on the Account screen and share them privately. Owner setup and invitations expire after seven days; reset links expire after one hour. There is no email delivery service yet.
 
+New passwords use scrypt (`N=16384, r=8, p=5`) with a unique random salt. Existing PBKDF2-chain hashes are verified and upgraded to scrypt after a successful sign-in.
+
 For local Worker development, put `API_KEY="your-key"` in `.dev.vars`, run `bun run worker:d1:local`, then `bun run worker:dev`.
 
 The old Bun server deployment instructions are below for installations that still use it.

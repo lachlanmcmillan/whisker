@@ -1,3 +1,5 @@
+import { scrypt } from "node:crypto";
+
 export interface UserRow {
   id: string;
   email: string;
@@ -25,6 +27,9 @@ export const COOKIE_NAME = "__Host-whisker_session";
 export const SESSION_AGE_SECONDS = 30 * 24 * 60 * 60;
 const PASSWORD_ROUNDS = 6;
 const PASSWORD_ITERATIONS_PER_ROUND = 100_000;
+const SCRYPT_N = 16_384;
+const SCRYPT_R = 8;
+const SCRYPT_P = 5;
 const encoder = new TextEncoder();
 
 function bytesToBase64Url(bytes: Uint8Array): string {
@@ -97,11 +102,26 @@ async function derivePassword(
   return input;
 }
 
+async function deriveScrypt(
+  password: string,
+  salt: Uint8Array
+): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    scrypt(
+      password,
+      salt,
+      32,
+      { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P, maxmem: 64 * 1024 * 1024 },
+      (error, key) => (error ? reject(error) : resolve(new Uint8Array(key)))
+    );
+  });
+}
+
 export async function hashPassword(input: unknown): Promise<string> {
   const password = validatePassword(input);
   const salt = crypto.getRandomValues(new Uint8Array(16));
-  const hash = await derivePassword(password, salt, PASSWORD_ROUNDS);
-  return `pbkdf2-sha256-chain$${PASSWORD_ROUNDS}x${PASSWORD_ITERATIONS_PER_ROUND}$${bytesToBase64Url(salt)}$${bytesToBase64Url(hash)}`;
+  const hash = await deriveScrypt(password, salt);
+  return `scrypt$${SCRYPT_N},${SCRYPT_R},${SCRYPT_P}$${bytesToBase64Url(salt)}$${bytesToBase64Url(hash)}`;
 }
 
 export async function verifyPassword(
@@ -109,29 +129,22 @@ export async function verifyPassword(
   stored: string | null
 ): Promise<boolean> {
   if (!stored) {
-    await derivePassword(password, new Uint8Array(16), PASSWORD_ROUNDS);
+    await deriveScrypt(password, new Uint8Array(16));
     return false;
   }
   const [algorithm, count, encodedSalt, encodedHash] = stored.split("$");
-  if (
-    algorithm !== "pbkdf2-sha256-chain" ||
-    !count ||
-    !encodedSalt ||
-    !encodedHash
-  )
-    return false;
-  const rounds = Number(count.split("x")[0]);
-  if (
-    count !== `${PASSWORD_ROUNDS}x${PASSWORD_ITERATIONS_PER_ROUND}` ||
-    rounds !== PASSWORD_ROUNDS
-  )
-    return false;
+  if (!count || !encodedSalt || !encodedHash) return false;
+  const salt = base64UrlToBytes(encodedSalt);
   const expected = base64UrlToBytes(encodedHash);
-  const actual = await derivePassword(
-    password,
-    base64UrlToBytes(encodedSalt),
-    rounds
-  );
+  let actual: Uint8Array;
+  if (algorithm === "scrypt" && count === `${SCRYPT_N},${SCRYPT_R},${SCRYPT_P}`)
+    actual = await deriveScrypt(password, salt);
+  else if (
+    algorithm === "pbkdf2-sha256-chain" &&
+    count === `${PASSWORD_ROUNDS}x${PASSWORD_ITERATIONS_PER_ROUND}`
+  )
+    actual = await derivePassword(password, salt, PASSWORD_ROUNDS);
+  else return false;
   let difference = expected.length ^ actual.length;
   for (
     let index = 0;

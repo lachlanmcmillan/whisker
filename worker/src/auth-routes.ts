@@ -221,6 +221,15 @@ export async function handleAuthRoute(
         await recordFailedLogin(db, attemptKey);
         return error("invalid_credentials", "Invalid email or password", 401);
       }
+      if (user.passwordHash?.startsWith("pbkdf2-sha256-chain$")) {
+        const newHash = await hashPassword(body.password);
+        await db
+          .prepare(
+            "UPDATE Users SET passwordHash = ? WHERE id = ? AND passwordHash = ?"
+          )
+          .bind(newHash, user.id, user.passwordHash)
+          .run();
+      }
       await db
         .prepare("DELETE FROM LoginAttempts WHERE key = ?")
         .bind(attemptKey)
