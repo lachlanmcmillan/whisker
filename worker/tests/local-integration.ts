@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 
-const origin = "http://localhost:8787";
+const origin = process.env.WHISKER_TEST_ORIGIN ?? "http://localhost:8787";
 const apiKey = /^API_KEY=(.*)$/m
   .exec(readFileSync(".dev.vars", "utf8"))?.[1]
   ?.replace(/^"|"$/g, "");

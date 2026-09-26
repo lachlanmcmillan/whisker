@@ -23,7 +23,8 @@ export interface AccountTokenRow {
 
 export const COOKIE_NAME = "__Host-whisker_session";
 export const SESSION_AGE_SECONDS = 30 * 24 * 60 * 60;
-const PASSWORD_ITERATIONS = 600_000;
+const PASSWORD_ROUNDS = 6;
+const PASSWORD_ITERATIONS_PER_ROUND = 100_000;
 const encoder = new TextEncoder();
 
 function bytesToBase64Url(bytes: Uint8Array): string {
@@ -69,28 +70,38 @@ export function validatePassword(input: unknown): string {
 async function derivePassword(
   password: string,
   salt: Uint8Array,
-  iterations: number
+  rounds: number
 ): Promise<Uint8Array> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(password),
-    "PBKDF2",
-    false,
-    ["deriveBits"]
-  );
-  const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", hash: "SHA-256", salt: new Uint8Array(salt), iterations },
-    key,
-    256
-  );
-  return new Uint8Array(bits);
+  let input = encoder.encode(password);
+  // Workers caps each PBKDF2 call at 100,000 iterations. Each round uses the
+  // previous round's output as its key, so a password guess needs all rounds.
+  for (let round = 0; round < rounds; round++) {
+    const roundSalt = new Uint8Array(salt.length + 1);
+    roundSalt.set(salt);
+    roundSalt[salt.length] = round;
+    const key = await crypto.subtle.importKey("raw", input, "PBKDF2", false, [
+      "deriveBits",
+    ]);
+    const bits = await crypto.subtle.deriveBits(
+      {
+        name: "PBKDF2",
+        hash: "SHA-256",
+        salt: roundSalt,
+        iterations: PASSWORD_ITERATIONS_PER_ROUND,
+      },
+      key,
+      256
+    );
+    input = new Uint8Array(bits);
+  }
+  return input;
 }
 
 export async function hashPassword(input: unknown): Promise<string> {
   const password = validatePassword(input);
   const salt = crypto.getRandomValues(new Uint8Array(16));
-  const hash = await derivePassword(password, salt, PASSWORD_ITERATIONS);
-  return `pbkdf2-sha256$${PASSWORD_ITERATIONS}$${bytesToBase64Url(salt)}$${bytesToBase64Url(hash)}`;
+  const hash = await derivePassword(password, salt, PASSWORD_ROUNDS);
+  return `pbkdf2-sha256-chain$${PASSWORD_ROUNDS}x${PASSWORD_ITERATIONS_PER_ROUND}$${bytesToBase64Url(salt)}$${bytesToBase64Url(hash)}`;
 }
 
 export async function verifyPassword(
@@ -98,20 +109,28 @@ export async function verifyPassword(
   stored: string | null
 ): Promise<boolean> {
   if (!stored) {
-    await derivePassword(password, new Uint8Array(16), PASSWORD_ITERATIONS);
+    await derivePassword(password, new Uint8Array(16), PASSWORD_ROUNDS);
     return false;
   }
   const [algorithm, count, encodedSalt, encodedHash] = stored.split("$");
-  if (algorithm !== "pbkdf2-sha256" || !count || !encodedSalt || !encodedHash)
+  if (
+    algorithm !== "pbkdf2-sha256-chain" ||
+    !count ||
+    !encodedSalt ||
+    !encodedHash
+  )
     return false;
-  const iterations = Number(count);
-  if (!Number.isInteger(iterations) || iterations < 1 || iterations > 2_000_000)
+  const rounds = Number(count.split("x")[0]);
+  if (
+    count !== `${PASSWORD_ROUNDS}x${PASSWORD_ITERATIONS_PER_ROUND}` ||
+    rounds !== PASSWORD_ROUNDS
+  )
     return false;
   const expected = base64UrlToBytes(encodedHash);
   const actual = await derivePassword(
     password,
     base64UrlToBytes(encodedSalt),
-    iterations
+    rounds
   );
   let difference = expected.length ^ actual.length;
   for (
@@ -231,9 +250,9 @@ export async function issueAccountToken(
   const token = randomToken();
   const now = Date.now();
   const age =
-    input.purpose === "invite" || input.purpose === "setup"
-      ? 7 * 24 * 60 * 60 * 1000
-      : 60 * 60 * 1000;
+    input.purpose === "invite" || input.purpose === "setup" ?
+      7 * 24 * 60 * 60 * 1000
+    : 60 * 60 * 1000;
   await db
     .prepare(
       `INSERT INTO AccountTokens
