@@ -119,6 +119,12 @@ function App() {
     setView("feeds");
   };
 
+  // Opening a feed from an entry swaps the whole list, so start at its top.
+  const handleSelectFeedFromEntry = (id: number) => {
+    handleSelectFeed(id);
+    window.scrollTo({ top: 0 });
+  };
+
   const handleSelectAllInbox = () => {
     setFilter("all");
     setTagId("all");
@@ -414,7 +420,11 @@ function App() {
                       <div class={styles.list}>
                         <For each={visibleEntries()}>
                           {({ entry, feed }) => (
-                            <EntryListRow entry={entry} feed={feed} />
+                            <EntryListRow
+                              entry={entry}
+                              feed={feed}
+                              onSelectFeed={handleSelectFeedFromEntry}
+                            />
                           )}
                         </For>
                       </div>
@@ -423,7 +433,11 @@ function App() {
                     <div class={styles.grid}>
                       <For each={visibleEntries()}>
                         {({ entry, feed }) => (
-                          <EntryCard entry={entry} feed={feed} />
+                          <EntryCard
+                            entry={entry}
+                            feed={feed}
+                            onSelectFeed={handleSelectFeedFromEntry}
+                          />
                         )}
                       </For>
                     </div>

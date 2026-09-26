@@ -12,6 +12,7 @@ import styles from "./entryCard.module.css";
 interface EntryCardProps {
   entry: FeedEntry;
   feed: Pick<Feed, "id" | "title" | "image">;
+  onSelectFeed: (feedId: number) => void;
 }
 
 export function EntryCard(props: EntryCardProps) {
@@ -92,7 +93,14 @@ export function EntryCard(props: EntryCardProps) {
         </Show>
       </a>
       <div class={styles.body}>
-        <FeedAvatar feed={props.feed} size={30} />
+        <button
+          type="button"
+          class={styles.feedLink}
+          title={`Show only ${props.feed.title}`}
+          onClick={() => props.onSelectFeed(props.feed.id)}
+        >
+          <FeedAvatar feed={props.feed} size={30} />
+        </button>
         <div class={styles.text}>
           <h3 class={styles.title}>
             <a
@@ -111,7 +119,14 @@ export function EntryCard(props: EntryCardProps) {
               color="var(--accent)"
             />
             <span>
-              {props.feed.title} ·{" "}
+              <button
+                type="button"
+                class={`${styles.feedLink} ${styles.feedName}`}
+                onClick={() => props.onSelectFeed(props.feed.id)}
+              >
+                {props.feed.title}
+              </button>{" "}
+              ·{" "}
               <span title={timeAgo(props.entry.published)}>
                 {shortTimeAgo(props.entry.published)}
               </span>

@@ -12,6 +12,7 @@ import styles from "./entryListRow.module.css";
 interface EntryListRowProps {
   entry: FeedEntry;
   feed: Pick<Feed, "id" | "title" | "image">;
+  onSelectFeed: (feedId: number) => void;
 }
 
 export function EntryListRow(props: EntryListRowProps) {
@@ -72,7 +73,14 @@ export function EntryListRow(props: EntryListRowProps) {
           )}
         </Show>
       </a>
-      <FeedAvatar feed={props.feed} size={28} />
+      <button
+        type="button"
+        class={styles.feedLink}
+        title={`Show only ${props.feed.title}`}
+        onClick={() => props.onSelectFeed(props.feed.id)}
+      >
+        <FeedAvatar feed={props.feed} size={28} />
+      </button>
       <div class={styles.text}>
         <h3 class={styles.title}>
           <a
@@ -91,7 +99,14 @@ export function EntryListRow(props: EntryListRowProps) {
             color="var(--accent)"
           />
           <span>
-            {props.feed.title} ·{" "}
+            <button
+              type="button"
+              class={`${styles.feedLink} ${styles.feedName}`}
+              onClick={() => props.onSelectFeed(props.feed.id)}
+            >
+              {props.feed.title}
+            </button>{" "}
+            ·{" "}
             <span title={timeAgo(props.entry.published)}>
               {shortTimeAgo(props.entry.published)}
             </span>
