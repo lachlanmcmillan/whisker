@@ -7,6 +7,7 @@ import {
   setOnUnauthorized,
   type User,
 } from "$lib/api";
+import { tagHue } from "$lib/tagHue";
 import { Icon } from "$components/Icon/Icon";
 import { FeedAvatar } from "$components/FeedAvatar/FeedAvatar";
 import { Sidebar, type FilterMode } from "$components/Sidebar/Sidebar";
@@ -73,7 +74,7 @@ function App() {
       }
     }
     return [...tagMap.values()]
-      .map(({ tag, count }) => ({ tag, count, hue: tagHueFromName(tag.name) }))
+      .map(({ tag, count }) => ({ tag, count, hue: tagHue(tag.name) }))
       .sort((a, b) => a.tag.name.localeCompare(b.tag.name));
   });
 
@@ -266,7 +267,7 @@ function App() {
                   </button>
                   <Show when={view() !== "feeds"}>
                     <button
-                      class={styles.searchBtn}
+                      class={`${styles.searchBtn} ${styles.backBtn}`}
                       onClick={() => setView("feeds")}
                     >
                       ← Back to feeds
@@ -545,14 +546,6 @@ function AddFeedButton(props: AddFeedButtonProps) {
       </Show>
     </div>
   );
-}
-
-function tagHueFromName(name: string): number {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) {
-    h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  }
-  return h % 360;
 }
 
 export default App;

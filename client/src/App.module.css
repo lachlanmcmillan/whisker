@@ -139,6 +139,10 @@
   font-family: inherit;
 }
 
+.backBtn {
+  min-width: 0;
+}
+
 .searchBtn:hover:not(:disabled) {
   background: var(--surface-2);
 }

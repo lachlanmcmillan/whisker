@@ -188,6 +188,10 @@ export async function listTags(): Promise<Tag[]> {
   return result.data;
 }
 
+export const renameTag = (id: number, name: string) =>
+  request<Tag>(`/tags/${id}`, "PUT", { name });
+export const deleteTag = (id: number) => request<null>(`/tags/${id}`, "DELETE");
+
 export async function updateEntry(
   feedId: number,
   entryId: string,

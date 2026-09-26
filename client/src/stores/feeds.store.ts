@@ -1,16 +1,22 @@
 import { createStore, reconcile } from "solid-js/store";
-import type { Feed, FeedEntry } from "$lib/api";
+import type { Feed, FeedEntry, Tag } from "$lib/api";
 import {
+  addFeeds,
   fetchFeeds,
   updateEntry,
   updateFeed,
   deleteFeed,
+  refreshFeed,
   assignTagToFeed,
   unassignTagFromFeed,
+  listTags,
+  renameTag,
+  deleteTag,
 } from "$lib/api";
 import { appSettingsStore } from "$stores/settings.store";
 
 const [feeds, setFeeds] = createStore<Feed[]>([]);
+const [tags, setTags] = createStore<Tag[]>([]);
 
 function isEntryUnread(entry: FeedEntry): boolean {
   return !entry.openedAt && !entry.archivedAt;
@@ -87,19 +93,49 @@ async function editFeed(
   await loadFeeds();
 }
 
-async function removeFeed(feedId: number) {
-  await deleteFeed(feedId);
+async function loadTags() {
+  const data = await listTags();
+  setTags(reconcile(data, { key: "id", merge: false }));
+  return data;
+}
+
+async function removeFeeds(feedIds: number[]) {
+  await Promise.all(feedIds.map(id => deleteFeed(id)));
   await loadFeeds();
 }
 
-async function attachTag(feedId: number, name: string) {
-  await assignTagToFeed(feedId, { name });
+async function refreshFeedNow(feedId: number) {
+  await refreshFeed(feedId);
   await loadFeeds();
 }
 
-async function detachTag(feedId: number, tagId: number) {
-  await unassignTagFromFeed(feedId, tagId);
+async function importFeeds(urls: string[]) {
+  await addFeeds(urls);
   await loadFeeds();
+}
+
+async function attachTag(feedIds: number[], name: string) {
+  const [first, ...rest] = feedIds;
+  if (first === undefined) return;
+  // Assign by name once so the tag is created, then by id to avoid racing on creation.
+  const tag = await assignTagToFeed(first, { name });
+  await Promise.all(rest.map(id => assignTagToFeed(id, { tagId: tag.id })));
+  await Promise.all([loadFeeds(), loadTags()]);
+}
+
+async function detachTag(feedIds: number[], tagId: number) {
+  await Promise.all(feedIds.map(id => unassignTagFromFeed(id, tagId)));
+  await loadFeeds();
+}
+
+async function renameTagById(tagId: number, name: string) {
+  await renameTag(tagId, name);
+  await Promise.all([loadFeeds(), loadTags()]);
+}
+
+async function removeTag(tagId: number) {
+  await deleteTag(tagId);
+  await Promise.all([loadFeeds(), loadTags()]);
 }
 
 export {
@@ -109,9 +145,15 @@ export {
   toggleEntryRead,
   toggleEntryArchived,
   toggleEntryStarred,
-  removeFeed,
+  tags,
+  loadTags,
+  removeFeeds,
+  refreshFeedNow,
+  importFeeds,
   attachTag,
   detachTag,
+  renameTagById,
+  removeTag,
   isEntryVisible,
   getUnreadEntryCount,
   getTotalUnreadEntryCount,

@@ -1,5 +1,6 @@
 import { createSignal, Show } from "solid-js";
 import { Button } from "$components/Button/Button";
+import { RefreshIntervalSelect } from "$components/RefreshIntervalSelect/RefreshIntervalSelect";
 import { editFeed } from "$stores/feeds.store";
 import type { Feed } from "$lib/api";
 import styles from "./editFeedDialog.module.css";
@@ -16,7 +17,7 @@ export function EditFeedDialog(props: EditFeedDialogProps) {
   const [image, setImage] = createSignal(props.feed.image ?? "");
   const [link, setLink] = createSignal(props.feed.link);
   const [refreshIntervalMins, setRefreshIntervalMins] = createSignal(
-    props.feed.refreshIntervalMins?.toString() ?? ""
+    props.feed.refreshIntervalMins
   );
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
@@ -26,18 +27,6 @@ export function EditFeedDialog(props: EditFeedDialogProps) {
     setSubmitting(true);
     setError(null);
 
-    const refreshIntervalValue = refreshIntervalMins().trim();
-    let parsedRefreshIntervalMins: number | null = null;
-    if (refreshIntervalValue !== "") {
-      const parsed = Number(refreshIntervalValue);
-      if (!Number.isInteger(parsed) || parsed <= 0) {
-        setError("Auto refresh must be a whole number greater than 0");
-        setSubmitting(false);
-        return;
-      }
-      parsedRefreshIntervalMins = parsed;
-    }
-
     try {
       await editFeed(props.feed.id, {
         title: title(),
@@ -45,7 +34,7 @@ export function EditFeedDialog(props: EditFeedDialogProps) {
         description: description(),
         image: image() || undefined,
         link: link(),
-        refreshIntervalMins: parsedRefreshIntervalMins,
+        refreshIntervalMins: refreshIntervalMins(),
       });
       props.onClose();
     } catch (e) {
@@ -103,16 +92,12 @@ export function EditFeedDialog(props: EditFeedDialogProps) {
             />
           </div>
           <div class={styles.field}>
-            <label>Auto refresh (minutes)</label>
-            <input
-              type="number"
-              min="1"
-              step="1"
+            <label>Auto refresh</label>
+            <RefreshIntervalSelect
               value={refreshIntervalMins()}
-              onInput={e => setRefreshIntervalMins(e.currentTarget.value)}
+              onChange={setRefreshIntervalMins}
               disabled={submitting()}
             />
-            <p class={styles.help}>Leave blank to disable automatic refresh.</p>
           </div>
           <Show when={error()}>
             {msg => <p class={styles.error}>{msg()}</p>}

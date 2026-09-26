@@ -1,0 +1,19 @@
+.select {
+  padding: 4px 8px;
+  font-size: 12.5px;
+  font-family: inherit;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+.select:hover:not(:disabled) {
+  border-color: var(--fg-4);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
