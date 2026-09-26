@@ -25,8 +25,6 @@ export interface AccountTokenRow {
 
 export const COOKIE_NAME = "__Host-whisker_session";
 export const SESSION_AGE_SECONDS = 30 * 24 * 60 * 60;
-const PASSWORD_ROUNDS = 6;
-const PASSWORD_ITERATIONS_PER_ROUND = 100_000;
 const SCRYPT_N = 16_384;
 const SCRYPT_R = 8;
 const SCRYPT_P = 5;
@@ -72,36 +70,6 @@ export function validatePassword(input: unknown): string {
   return input;
 }
 
-async function derivePassword(
-  password: string,
-  salt: Uint8Array,
-  rounds: number
-): Promise<Uint8Array> {
-  let input = encoder.encode(password);
-  // Workers caps each PBKDF2 call at 100,000 iterations. Each round uses the
-  // previous round's output as its key, so a password guess needs all rounds.
-  for (let round = 0; round < rounds; round++) {
-    const roundSalt = new Uint8Array(salt.length + 1);
-    roundSalt.set(salt);
-    roundSalt[salt.length] = round;
-    const key = await crypto.subtle.importKey("raw", input, "PBKDF2", false, [
-      "deriveBits",
-    ]);
-    const bits = await crypto.subtle.deriveBits(
-      {
-        name: "PBKDF2",
-        hash: "SHA-256",
-        salt: roundSalt,
-        iterations: PASSWORD_ITERATIONS_PER_ROUND,
-      },
-      key,
-      256
-    );
-    input = new Uint8Array(bits);
-  }
-  return input;
-}
-
 async function deriveScrypt(
   password: string,
   salt: Uint8Array
@@ -133,18 +101,16 @@ export async function verifyPassword(
     return false;
   }
   const [algorithm, count, encodedSalt, encodedHash] = stored.split("$");
-  if (!count || !encodedSalt || !encodedHash) return false;
+  if (
+    algorithm !== "scrypt" ||
+    count !== `${SCRYPT_N},${SCRYPT_R},${SCRYPT_P}` ||
+    !encodedSalt ||
+    !encodedHash
+  )
+    return false;
   const salt = base64UrlToBytes(encodedSalt);
   const expected = base64UrlToBytes(encodedHash);
-  let actual: Uint8Array;
-  if (algorithm === "scrypt" && count === `${SCRYPT_N},${SCRYPT_R},${SCRYPT_P}`)
-    actual = await deriveScrypt(password, salt);
-  else if (
-    algorithm === "pbkdf2-sha256-chain" &&
-    count === `${PASSWORD_ROUNDS}x${PASSWORD_ITERATIONS_PER_ROUND}`
-  )
-    actual = await derivePassword(password, salt, PASSWORD_ROUNDS);
-  else return false;
+  const actual = await deriveScrypt(password, salt);
   let difference = expected.length ^ actual.length;
   for (
     let index = 0;
