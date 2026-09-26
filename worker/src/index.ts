@@ -1,4 +1,4 @@
-import { fetchFeed } from "../../server/src/lib/feed/fetch";
+import { fetchFeed } from "./feed/fetch";
 import { authenticatedUser } from "./auth";
 import { handleAuthRoute } from "./auth-routes";
 import {

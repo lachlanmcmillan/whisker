@@ -1,6 +1,4 @@
-const BASE =
-  import.meta.env.VITE_API_URL ??
-  (import.meta.env.PROD ? "" : "http://localhost:3000");
+const BASE = import.meta.env.VITE_API_URL ?? "";
 
 let onUnauthorized: (() => void) | null = null;
 

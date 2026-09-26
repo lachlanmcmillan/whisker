@@ -1,30 +1,31 @@
-import type { entriesModel } from "../../generated/prisma/models/entries";
-import type { feedsModel } from "../../generated/prisma/models/feeds";
-import { parseAtomFeed } from "../atom/parse";
-import { parseRssFeed } from "../rss/parse";
+import { parseAtomFeed } from "./atom";
+import { parseRssFeed } from "./rss";
 import { ok, err, type Result, type AsyncResult } from "@whisker/common";
 
-type ParsedFeedFields = Pick<
-  feedsModel,
-  "title" | "description" | "link" | "feedUrl" | "author" | "published"
-> & {
-  image?: Exclude<feedsModel["image"], null>;
-  fetchedAt?: Exclude<feedsModel["fetchedAt"], null>;
-  refreshIntervalMins?: feedsModel["refreshIntervalMins"];
-};
+export interface FeedEntry {
+  entryId: string;
+  title: string;
+  link: string;
+  author: string;
+  published: string;
+  description: string;
+  updated?: string;
+  thumbnail?: string;
+  content?: string;
+}
 
-export type FeedEntry = Pick<
-  entriesModel,
-  "entryId" | "title" | "link" | "author" | "published" | "description"
-> & {
-  updated?: Exclude<entriesModel["updated"], null>;
-  thumbnail?: Exclude<entriesModel["thumbnail"], null>;
-  content?: Exclude<entriesModel["content"], null>;
-};
-
-export type Feed = ParsedFeedFields & {
+export interface Feed {
+  title: string;
+  description: string;
+  link: string;
+  feedUrl: string;
+  author: string;
+  published: string;
+  image?: string;
+  fetchedAt?: string;
+  refreshIntervalMins?: number | null;
   entries: FeedEntry[];
-};
+}
 
 function parseFeed(xml: string): Result<Feed> {
   if (/<feed[\s>]/i.test(xml)) return parseAtomFeed(xml);

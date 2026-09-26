@@ -4,8 +4,7 @@
   "workspaces": {
     "packages": [
       "common",
-      "client",
-      "server"
+      "client"
     ],
     "catalog": {
       "typescript": "~6.0.2"
@@ -19,15 +18,19 @@
     "typescript": "catalog:",
     "wrangler": "^4.141.0"
   },
+  "dependencies": {
+    "@whisker/common": "workspace:*",
+    "fast-xml-parser": "^5.5.10"
+  },
   "scripts": {
-    "dev": "bun run --parallel --filter @whisker/server --filter @whisker/client dev",
+    "dev": "bun run worker:d1:local && bun run worker:build && bun run --parallel worker:serve client:dev",
+    "client:dev": "bun run --filter @whisker/client dev",
     "prettier": "prettier --write \"**/src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "deploy-server-ssh": "bun run ./scripts/deploy-server-ssh.ts",
-    "db:pull-latest-prod": "bun run ./scripts/download-db.ts",
-    "tsc": "bun run --sequential --filter @whisker/server --filter @whisker/client tsc",
+    "tsc": "bun run --filter @whisker/client tsc && bun run worker:tsc",
     "worker:build": "bun run --filter @whisker/client build",
     "worker:tsc": "tsc -p worker/tsconfig.json",
     "worker:dev": "bun run worker:build && wrangler dev",
+    "worker:serve": "wrangler dev --port 8787",
     "worker:deploy": "bun run worker:build && wrangler deploy --secrets-file .dev.vars",
     "worker:d1:local": "wrangler d1 migrations apply DB --local",
     "worker:d1:remote": "wrangler d1 migrations apply DB --remote"

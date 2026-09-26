@@ -1,7 +1,7 @@
 import {
   fetchFeed,
   type Feed as ParsedFeed,
-} from "../../server/src/lib/feed/fetch";
+} from "./feed/fetch";
 
 export interface FeedRow {
   id: number;
