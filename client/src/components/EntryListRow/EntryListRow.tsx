@@ -1,4 +1,4 @@
-import { Show } from "solid-js";
+import { Show, createSignal } from "solid-js";
 import type { Feed, FeedEntry } from "$lib/api";
 import { FeedAvatar, titleHue } from "$components/FeedAvatar/FeedAvatar";
 import { CachedThumbnail } from "$components/CachedThumbnail/CachedThumbnail";
@@ -21,9 +21,14 @@ export function EntryListRow(props: EntryListRowProps) {
     toggleEntryRead(props.entry.feedId, props.entry.entryId, false);
   };
   const thumb = () => props.entry.thumbnail ?? props.feed.image ?? null;
+  const [expanded, setExpanded] = createSignal(false);
 
   return (
-    <article class={styles.row} data-read={isRead() ? "true" : "false"}>
+    <article
+      class={styles.row}
+      data-read={isRead() ? "true" : "false"}
+      data-expanded={expanded() ? "true" : "false"}
+    >
       <CheckButton
         checked={isRead()}
         onClick={() => {
@@ -93,7 +98,9 @@ export function EntryListRow(props: EntryListRowProps) {
           </span>
         </div>
         <Show when={props.entry.description}>
-          <p class={styles.blurb}>{props.entry.description}</p>
+          <p class={styles.blurb} onClick={() => setExpanded(v => !v)}>
+            {props.entry.description}
+          </p>
         </Show>
       </div>
     </article>

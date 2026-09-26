@@ -92,3 +92,8 @@
   overflow: hidden;
   text-wrap: pretty;
 }
+
+.row[data-expanded="true"] .blurb {
+  display: block;
+  white-space: pre-line;
+}

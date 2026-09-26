@@ -1,4 +1,4 @@
-import { Show } from "solid-js";
+import { Show, createSignal } from "solid-js";
 import type { Feed, FeedEntry } from "$lib/api";
 import { FeedAvatar, titleHue } from "$components/FeedAvatar/FeedAvatar";
 import { CachedThumbnail } from "$components/CachedThumbnail/CachedThumbnail";
@@ -21,9 +21,22 @@ export function EntryCard(props: EntryCardProps) {
     toggleEntryRead(props.entry.feedId, props.entry.entryId, false);
   };
   const thumb = () => props.entry.thumbnail ?? props.feed.image ?? null;
+  const [expanded, setExpanded] = createSignal(false);
+  let card!: HTMLElement;
+
+  const toggleExpanded = () => {
+    setExpanded(v => !v);
+    // Expanding moves the card onto its own row, so keep it on screen.
+    requestAnimationFrame(() => card.scrollIntoView({ block: "nearest" }));
+  };
 
   return (
-    <article class={styles.card} data-read={isRead() ? "true" : "false"}>
+    <article
+      ref={card}
+      class={styles.card}
+      data-read={isRead() ? "true" : "false"}
+      data-expanded={expanded() ? "true" : "false"}
+    >
       <CheckButton
         checked={isRead()}
         onClick={() => {
@@ -42,6 +55,17 @@ export function EntryCard(props: EntryCardProps) {
           );
         }}
       />
+      <Show when={expanded()}>
+        <button
+          type="button"
+          class={styles.close}
+          title="Close"
+          aria-label="Close"
+          onClick={toggleExpanded}
+        >
+          <Icon name="close" size={16} />
+        </button>
+      </Show>
       <a
         class={styles.thumbLink}
         href={props.entry.link}
@@ -96,7 +120,9 @@ export function EntryCard(props: EntryCardProps) {
         </div>
       </div>
       <Show when={props.entry.description}>
-        <p class={styles.blurb}>{props.entry.description}</p>
+        <p class={styles.blurb} onClick={toggleExpanded}>
+          {props.entry.description}
+        </p>
       </Show>
     </article>
   );
