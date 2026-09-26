@@ -3,7 +3,7 @@ import type { Feed, FeedEntry } from "$lib/api";
 import { FeedAvatar, titleHue } from "$components/FeedAvatar/FeedAvatar";
 import { CachedThumbnail } from "$components/CachedThumbnail/CachedThumbnail";
 import { Icon, entryTypeFromUrl } from "$components/Icon/Icon";
-import { timeAgo } from "$lib/timeAgo";
+import { shortTimeAgo, timeAgo } from "$lib/timeAgo";
 import { CheckButton } from "$components/CheckButton/CheckButton";
 import { ArchiveButton } from "$components/ArchiveButton/ArchiveButton";
 import { toggleEntryRead, toggleEntryArchived } from "$stores/feeds.store";
@@ -86,7 +86,10 @@ export function EntryListRow(props: EntryListRowProps) {
             color="var(--accent)"
           />
           <span>
-            {props.feed.title} · {timeAgo(props.entry.published)}
+            {props.feed.title} ·{" "}
+            <span title={timeAgo(props.entry.published)}>
+              {shortTimeAgo(props.entry.published)}
+            </span>
           </span>
         </div>
         <Show when={props.entry.description}>
