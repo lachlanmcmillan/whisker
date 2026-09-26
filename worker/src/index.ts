@@ -1,4 +1,6 @@
 import { fetchFeed } from "../../server/src/lib/feed/fetch";
+import { authenticatedUser } from "./auth";
+import { handleAuthRoute } from "./auth-routes";
 import {
   createTag,
   FeedFetchError,
@@ -21,7 +23,10 @@ interface Env {
 }
 
 function json(data: unknown, status = 200): Response {
-  return Response.json(data, { status });
+  return Response.json(data, {
+    status,
+    headers: { "Cache-Control": "no-store" },
+  });
 }
 
 function ok(data?: unknown, status = 200): Response {
@@ -66,15 +71,13 @@ async function api(req: Request, env: Env): Promise<Response | null> {
     pathname === "/query";
   if (!isApiPath) return null;
 
-  if (!env.API_KEY)
-    return fail("not_configured", "API key is not configured", 503);
-  if (req.headers.get("Authorization") !== `Bearer ${env.API_KEY}`) {
-    return fail("unauthorized", "Invalid or missing API key", 401);
-  }
+  if (pathname === "/query") return fail("not_found", "Not found", 404);
+  const user = await authenticatedUser(db, req);
+  if (!user) return fail("unauthorized", "Sign in required", 401);
 
   try {
     if (method === "GET" && pathname === "/feeds")
-      return ok(await readFeeds(db));
+      return ok(await readFeeds(db, user.id));
 
     if (method === "POST" && pathname === "/feeds") {
       const body = await bodyObject(req);
@@ -84,24 +87,44 @@ async function api(req: Request, env: Env): Promise<Response | null> {
       const parsed = await fetchFeed(body.url);
       if (parsed.error)
         return fail(parsed.error.code, parsed.error.message, 400);
-      await upsertFeed(db, parsed.data);
+      const id = await upsertFeed(db, parsed.data);
+      await db
+        .prepare(
+          `INSERT OR IGNORE INTO UserFeeds
+        (userId, feedId, createdAt) VALUES (?, ?, ?)`
+        )
+        .bind(user.id, id, new Date().toISOString())
+        .run();
       return ok(parsed.data, 201);
     }
 
     const feedId = idFrom(pathname, /^\/feeds\/(\d+)$/);
     if (feedId !== null) {
       if (method === "DELETE") {
-        await db.prepare("DELETE FROM feeds WHERE id = ?").bind(feedId).run();
+        await db
+          .prepare("DELETE FROM UserFeeds WHERE userId = ? AND feedId = ?")
+          .bind(user.id, feedId)
+          .run();
         return ok();
       }
       if (method === "PATCH") {
-        const row = await updateFeed(db, feedId, await bodyObject(req));
+        const row = await updateFeed(
+          db,
+          user.id,
+          feedId,
+          await bodyObject(req)
+        );
         return row ? ok(row) : fail("feed_not_found", "Feed not found", 404);
       }
     }
 
     const refreshId = idFrom(pathname, /^\/feeds\/(\d+)\/refresh$/);
     if (refreshId !== null && method === "POST") {
+      const subscribed = await db
+        .prepare("SELECT 1 FROM UserFeeds WHERE userId = ? AND feedId = ?")
+        .bind(user.id, refreshId)
+        .first();
+      if (!subscribed) return fail("feed_not_found", "Feed not found", 404);
       const found = await refreshStoredFeed(db, refreshId);
       return found ? ok() : fail("feed_not_found", "Feed not found", 404);
     }
@@ -109,22 +132,27 @@ async function api(req: Request, env: Env): Promise<Response | null> {
     const feedTagsId = idFrom(pathname, /^\/feeds\/(\d+)\/tags$/);
     if (feedTagsId !== null) {
       const exists = await db
-        .prepare("SELECT id FROM feeds WHERE id = ?")
-        .bind(feedTagsId)
+        .prepare(
+          "SELECT feedId AS id FROM UserFeeds WHERE userId = ? AND feedId = ?"
+        )
+        .bind(user.id, feedTagsId)
         .first<{ id: number }>();
       if (!exists) return fail("feed_not_found", "Feed not found", 404);
-      if (method === "GET") return ok(await readFeedTags(db, feedTagsId));
+      if (method === "GET")
+        return ok(await readFeedTags(db, user.id, feedTagsId));
       if (method === "POST") {
         const body = await bodyObject(req);
         let tag: TagRow | null;
         if (typeof body.tagId === "number" && Number.isInteger(body.tagId)) {
           tag = await db
-            .prepare("SELECT id, name FROM Tags WHERE id = ?")
-            .bind(body.tagId)
+            .prepare(
+              "SELECT id, name FROM UserTags WHERE userId = ? AND id = ?"
+            )
+            .bind(user.id, body.tagId)
             .first<TagRow>();
           if (!tag) return fail("tag_not_found", "Tag not found", 404);
         } else if ("name" in body) {
-          tag = await createTag(db, body.name);
+          tag = await createTag(db, user.id, body.name);
         } else {
           throw new InputError(
             "Body must include tagId (number) or name (string)"
@@ -132,9 +160,9 @@ async function api(req: Request, env: Env): Promise<Response | null> {
         }
         await db
           .prepare(
-            "INSERT OR IGNORE INTO FeedTags (feedId, tagId) VALUES (?, ?)"
+            "INSERT OR IGNORE INTO UserFeedTags (userId, feedId, tagId) VALUES (?, ?, ?)"
           )
-          .bind(feedTagsId, tag.id)
+          .bind(user.id, feedTagsId, tag.id)
           .run();
         return ok(tag);
       }
@@ -143,21 +171,24 @@ async function api(req: Request, env: Env): Promise<Response | null> {
     const unassignMatch = /^\/feeds\/(\d+)\/tags\/(\d+)$/.exec(pathname);
     if (unassignMatch && method === "DELETE") {
       await db
-        .prepare("DELETE FROM FeedTags WHERE feedId = ? AND tagId = ?")
-        .bind(Number(unassignMatch[1]), Number(unassignMatch[2]))
+        .prepare(
+          "DELETE FROM UserFeedTags WHERE userId = ? AND feedId = ? AND tagId = ?"
+        )
+        .bind(user.id, Number(unassignMatch[1]), Number(unassignMatch[2]))
         .run();
       return ok();
     }
 
     if (method === "GET" && pathname === "/tags") {
       const { results } = await db
-        .prepare("SELECT id, name FROM Tags ORDER BY name")
+        .prepare("SELECT id, name FROM UserTags WHERE userId = ? ORDER BY name")
+        .bind(user.id)
         .all<TagRow>();
       return ok(results);
     }
     if (method === "POST" && pathname === "/tags") {
       const body = await bodyObject(req);
-      return ok(await createTag(db, body.name));
+      return ok(await createTag(db, user.id, body.name));
     }
 
     const tagId = idFrom(pathname, /^\/tags\/(\d+)$/);
@@ -166,14 +197,14 @@ async function api(req: Request, env: Env): Promise<Response | null> {
         const body = await bodyObject(req);
         const name = normalizeTagName(body.name);
         const current = await db
-          .prepare("SELECT id, name FROM Tags WHERE id = ?")
-          .bind(tagId)
+          .prepare("SELECT id, name FROM UserTags WHERE userId = ? AND id = ?")
+          .bind(user.id, tagId)
           .first<TagRow>();
         if (!current) return fail("tag_not_found", "Tag not found", 404);
         if (current.name === name) return ok(current);
         const conflict = await db
-          .prepare("SELECT id FROM Tags WHERE name = ?")
-          .bind(name)
+          .prepare("SELECT id FROM UserTags WHERE userId = ? AND name = ?")
+          .bind(user.id, name)
           .first<{ id: number }>();
         if (conflict)
           return fail(
@@ -182,15 +213,15 @@ async function api(req: Request, env: Env): Promise<Response | null> {
             409
           );
         await db
-          .prepare("UPDATE Tags SET name = ? WHERE id = ?")
-          .bind(name, tagId)
+          .prepare("UPDATE UserTags SET name = ? WHERE userId = ? AND id = ?")
+          .bind(name, user.id, tagId)
           .run();
         return ok({ id: tagId, name });
       }
       if (method === "DELETE") {
         const result = await db
-          .prepare("DELETE FROM Tags WHERE id = ?")
-          .bind(tagId)
+          .prepare("DELETE FROM UserTags WHERE userId = ? AND id = ?")
+          .bind(user.id, tagId)
           .run();
         return result.meta.changes ?
             ok()
@@ -202,20 +233,12 @@ async function api(req: Request, env: Env): Promise<Response | null> {
     if (entryMatch && method === "PATCH") {
       const row = await updateEntry(
         db,
+        user.id,
         Number(entryMatch[1]),
         decodeURIComponent(entryMatch[2]),
         await bodyObject(req)
       );
       return row ? ok(row) : fail("entry_not_found", "Entry not found", 404);
-    }
-
-    if (method === "POST" && pathname === "/query") {
-      const body = await bodyObject(req);
-      if (typeof body.sql !== "string" || !body.sql.trim()) {
-        throw new InputError("sql is required");
-      }
-      const { results } = await db.prepare(body.sql).all();
-      return ok(results);
     }
 
     return fail("not_found", "Not found", 404);
@@ -227,17 +250,23 @@ async function api(req: Request, env: Env): Promise<Response | null> {
       return fail(error.code, error.message, 502);
     }
     console.error("api_failed", method, pathname, error);
-    return fail(
-      "db_query_failed",
-      error instanceof Error ? error.message : String(error),
-      500
-    );
+    return fail("internal_error", "Request failed", 500);
   }
 }
 
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     if (req.method === "OPTIONS") return new Response(null, { status: 204 });
+    if (
+      !["GET", "HEAD"].includes(req.method) &&
+      new URL(req.url).pathname !== "/auth/bootstrap"
+    ) {
+      const origin = req.headers.get("Origin");
+      if (origin !== new URL(req.url).origin)
+        return fail("forbidden", "Invalid request origin", 403);
+    }
+    const authResponse = await handleAuthRoute(req, env);
+    if (authResponse) return authResponse;
     const response = await api(req, env);
     return response ?? env.ASSETS.fetch(req);
   },

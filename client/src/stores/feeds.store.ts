@@ -27,7 +27,10 @@ function getUnreadEntryCount(feed: Pick<Feed, "entries">): number {
 }
 
 function getTotalUnreadEntryCount(currentFeeds: readonly Feed[]): number {
-  return currentFeeds.reduce((count, feed) => count + getUnreadEntryCount(feed), 0);
+  return currentFeeds.reduce(
+    (count, feed) => count + getUnreadEntryCount(feed),
+    0
+  );
 }
 
 async function loadFeeds() {
@@ -76,7 +79,6 @@ async function editFeed(
       | "author"
       | "image"
       | "link"
-      | "feedUrl"
       | "refreshIntervalMins"
     >
   >

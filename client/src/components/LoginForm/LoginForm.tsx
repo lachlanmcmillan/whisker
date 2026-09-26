@@ -1,5 +1,5 @@
 import { createSignal } from "solid-js";
-import { setApiKey } from "$lib/api";
+import { login } from "$lib/api";
 import styles from "./LoginForm.module.css";
 
 interface LoginFormProps {
@@ -7,15 +7,23 @@ interface LoginFormProps {
 }
 
 export function LoginForm(props: LoginFormProps) {
+  const [email, setEmail] = createSignal("");
   const [password, setPassword] = createSignal("");
+  const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
 
-  const handleSubmit = (e: Event) => {
+  const handleSubmit = async (e: Event) => {
     e.preventDefault();
-    if (!password()) return;
-    setApiKey(password());
     setError(null);
-    props.onLogin();
+    setSubmitting(true);
+    try {
+      await login(email(), password());
+      props.onLogin();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -23,12 +31,13 @@ export function LoginForm(props: LoginFormProps) {
       <form class={styles.form} onSubmit={handleSubmit}>
         <h1>Whisker</h1>
         <input
-          type="text"
+          type="email"
           name="username"
           autocomplete="username"
-          placeholder="Username"
-          tabindex={-1}
-          class={styles.username}
+          placeholder="Email"
+          value={email()}
+          onInput={e => setEmail(e.currentTarget.value)}
+          required
         />
         <input
           type="password"
@@ -38,7 +47,9 @@ export function LoginForm(props: LoginFormProps) {
           value={password()}
           onInput={e => setPassword(e.currentTarget.value)}
         />
-        <button type="submit">Log in</button>
+        <button type="submit" disabled={submitting()}>
+          {submitting() ? "Signing in…" : "Log in"}
+        </button>
         {error() && <p class={styles.error}>{error()}</p>}
       </form>
     </div>

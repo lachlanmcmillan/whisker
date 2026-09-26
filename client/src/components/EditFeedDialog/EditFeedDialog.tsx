@@ -15,7 +15,6 @@ export function EditFeedDialog(props: EditFeedDialogProps) {
   const [description, setDescription] = createSignal(props.feed.description);
   const [image, setImage] = createSignal(props.feed.image ?? "");
   const [link, setLink] = createSignal(props.feed.link);
-  const [feedUrl, setFeedUrl] = createSignal(props.feed.feedUrl);
   const [refreshIntervalMins, setRefreshIntervalMins] = createSignal(
     props.feed.refreshIntervalMins?.toString() ?? ""
   );
@@ -46,7 +45,6 @@ export function EditFeedDialog(props: EditFeedDialogProps) {
         description: description(),
         image: image() || undefined,
         link: link(),
-        feedUrl: feedUrl(),
         refreshIntervalMins: parsedRefreshIntervalMins,
       });
       props.onClose();
@@ -101,14 +99,6 @@ export function EditFeedDialog(props: EditFeedDialogProps) {
             <input
               value={link()}
               onInput={e => setLink(e.currentTarget.value)}
-              disabled={submitting()}
-            />
-          </div>
-          <div class={styles.field}>
-            <label>Feed URL</label>
-            <input
-              value={feedUrl()}
-              onInput={e => setFeedUrl(e.currentTarget.value)}
               disabled={submitting()}
             />
           </div>

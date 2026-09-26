@@ -1,16 +1,16 @@
 # Whisker
 
-A personal feed reader that runs in your browser.
+A feed reader that runs in your browser.
 
 ## Why
 
-You own it. There is no recommendation algorithm or third-party reader account. An API key protects your personal feed data.
+You own it. There is no recommendation algorithm or third-party reader account. Accounts are invite only, and each person has a private library and reading state.
 
 Whisker tracks YouTube channels and blogs so you know when there's new content, and keeps track of what you have and haven't seen/read.
 
 ## How it works
 
-The frontend is a SolidJS app. A Bun server or Cloudflare Worker fetches RSS and Atom feeds, discovers feed URLs from web pages, and stores subscriptions and reading state in SQLite or Cloudflare D1. The client talks to that API using an API key.
+The frontend is a SolidJS app. A Bun server or Cloudflare Worker fetches RSS and Atom feeds and discovers feed URLs from web pages. On Cloudflare, D1 stores shared feed content alongside private subscriptions, tags, and reading state. The browser signs in with email and password and uses an HTTP-only session cookie.
 
 ## Current status
 
@@ -18,15 +18,18 @@ You can subscribe to feeds, browse entries in grid or list view, organize feeds 
 
 ## Cloudflare Worker and D1
 
-The Worker serves the built frontend and API from one origin. D1 stores feeds, entries, tags, and reading state. A cron trigger checks for feeds due for refresh every five minutes. A new D1 database starts empty; the existing SQLite database is not imported automatically.
+The Worker serves the built frontend and API from one origin. D1 stores accounts, shared feeds and entries, and private libraries. A cron trigger checks subscribed feeds due for refresh every five minutes. A new D1 database starts empty; the existing SQLite database is not imported automatically.
 
 Current deployment: https://whisker.lachy-mcm-services.workers.dev
 
 1. Authenticate Wrangler with `bunx wrangler login` or set `CLOUDFLARE_API_TOKEN`.
 2. The `whisker` D1 database is bound in `wrangler.jsonc`. For a different Cloudflare account, create a database with `bunx wrangler d1 create whisker --location apac` and replace its database ID there.
 3. Apply the schema with `bun run worker:d1:remote`.
-4. Put `API_KEY="your-key"` in the gitignored `.dev.vars` file. Use a long, random value and enter the same key in Whisker's login form.
+4. Put a long random `API_KEY="your-key"` in the gitignored `.dev.vars` file. It is used once to create the first owner setup link.
 5. Deploy with `bun run worker:deploy`. This uploads the secret with the Worker. Wrangler prints the `workers.dev` URL.
+6. Call `POST /auth/bootstrap` with `Authorization: Bearer <API_KEY>` and JSON `{ "email": "owner@example.com" }`. Open the returned one-time setup URL and set the owner's password. Once the owner is active, bootstrap is disabled.
+
+The owner can create one-time invitation and reset links on the Account screen and share them privately. Owner setup and invitations expire after seven days; reset links expire after one hour. There is no email delivery service yet.
 
 For local Worker development, put `API_KEY="your-key"` in `.dev.vars`, run `bun run worker:d1:local`, then `bun run worker:dev`.
 

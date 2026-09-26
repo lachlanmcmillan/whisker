@@ -40,19 +40,43 @@ export interface TagRow {
 
 export type FeedWithEntries = FeedRow & { entries: EntryRow[]; tags: TagRow[] };
 
-export async function readFeeds(db: D1Database): Promise<FeedWithEntries[]> {
+export async function readFeeds(
+  db: D1Database,
+  userId: string
+): Promise<FeedWithEntries[]> {
   const { results: feedRows } = await db
-    .prepare("SELECT * FROM feeds ORDER BY id")
+    .prepare(
+      `SELECT f.id, COALESCE(uf.titleOverride, f.title) AS title,
+      COALESCE(uf.descriptionOverride, f.description) AS description,
+      COALESCE(uf.linkOverride, f.link) AS link, f.feedUrl,
+      COALESCE(uf.authorOverride, f.author) AS author, f.published,
+      COALESCE(uf.imageOverride, f.image) AS image, f.fetchedAt,
+      uf.refreshIntervalMins FROM UserFeeds uf
+      JOIN feeds f ON f.id = uf.feedId WHERE uf.userId = ? ORDER BY uf.createdAt`
+    )
+    .bind(userId)
     .all<FeedRow>();
   if (feedRows.length === 0) return [];
 
   const [entries, tagged] = await Promise.all([
-    db.prepare("SELECT * FROM entries ORDER BY published DESC").all<EntryRow>(),
     db
       .prepare(
-        `SELECT ft.feedId, t.id, t.name FROM FeedTags ft
-      JOIN Tags t ON t.id = ft.tagId ORDER BY t.id`
+        `SELECT e.id, e.feedId, e.entryId, e.title, e.link, e.author,
+      e.published, e.updated, e.description, e.thumbnail, e.content,
+      s.openedAt, s.archivedAt, s.starredAt FROM entries e
+      JOIN UserFeeds uf ON uf.feedId = e.feedId AND uf.userId = ?
+      LEFT JOIN UserEntryStates s ON s.entryId = e.id AND s.userId = ?
+      ORDER BY e.published DESC`
       )
+      .bind(userId, userId)
+      .all<EntryRow>(),
+    db
+      .prepare(
+        `SELECT ft.feedId, t.id, t.name FROM UserFeedTags ft
+      JOIN UserTags t ON t.id = ft.tagId AND t.userId = ft.userId
+      WHERE ft.userId = ? ORDER BY t.id`
+      )
+      .bind(userId)
       .all<TagRow & { feedId: number }>(),
   ]);
 
@@ -77,33 +101,24 @@ export async function readFeeds(db: D1Database): Promise<FeedWithEntries[]> {
 
 export async function readFeed(
   db: D1Database,
+  userId: string,
   id: number
 ): Promise<FeedWithEntries | null> {
-  const row = await db
-    .prepare("SELECT * FROM feeds WHERE id = ?")
-    .bind(id)
-    .first<FeedRow>();
-  if (!row) return null;
-  const [entries, tags] = await Promise.all([
-    db
-      .prepare("SELECT * FROM entries WHERE feedId = ? ORDER BY published DESC")
-      .bind(id)
-      .all<EntryRow>(),
-    readFeedTags(db, id),
-  ]);
-  return { ...row, entries: entries.results, tags };
+  return (await readFeeds(db, userId)).find(feed => feed.id === id) ?? null;
 }
 
 export async function readFeedTags(
   db: D1Database,
+  userId: string,
   id: number
 ): Promise<TagRow[]> {
   const { results } = await db
     .prepare(
-      `SELECT t.id, t.name FROM Tags t
-    JOIN FeedTags ft ON ft.tagId = t.id WHERE ft.feedId = ? ORDER BY t.id`
+      `SELECT t.id, t.name FROM UserTags t
+    JOIN UserFeedTags ft ON ft.tagId = t.id AND ft.userId = t.userId
+    WHERE ft.userId = ? AND ft.feedId = ? ORDER BY t.id`
     )
-    .bind(id)
+    .bind(userId, id)
     .all<TagRow>();
   return results;
 }
@@ -175,20 +190,21 @@ export async function upsertFeed(
 }
 
 const editableFeedFields = [
-  "title",
-  "description",
-  "author",
-  "image",
-  "link",
-  "feedUrl",
+  "titleOverride",
+  "descriptionOverride",
+  "authorOverride",
+  "imageOverride",
+  "linkOverride",
   "refreshIntervalMins",
 ] as const;
 
 export async function updateFeed(
   db: D1Database,
+  userId: string,
   id: number,
   data: Record<string, unknown>
 ): Promise<FeedWithEntries | null> {
+  if (!(await readFeed(db, userId, id))) return null;
   if ("refreshIntervalMins" in data) {
     const value = data.refreshIntervalMins;
     if (
@@ -200,21 +216,37 @@ export async function updateFeed(
       );
     }
   }
-  const fields = editableFeedFields.filter(key => key in data);
+  const overrides = Object.fromEntries(
+    (["title", "description", "author", "image", "link"] as const)
+      .filter(key => key in data)
+      .map(key => [`${key}Override`, data[key]])
+  );
+  if ("refreshIntervalMins" in data)
+    overrides.refreshIntervalMins = data.refreshIntervalMins;
+  for (const value of Object.values(overrides)) {
+    if (
+      value !== null &&
+      typeof value !== "string" &&
+      typeof value !== "number"
+    )
+      throw new InputError("Invalid feed field");
+  }
+  const fields = editableFeedFields.filter(key => key in overrides);
   if (fields.length > 0) {
-    const values = fields.map(key => data[key]);
+    const values = fields.map(key => overrides[key]);
     await db
       .prepare(
-        `UPDATE feeds SET ${fields.map(key => `${key} = ?`).join(", ")} WHERE id = ?`
+        `UPDATE UserFeeds SET ${fields.map(key => `${key} = ?`).join(", ")} WHERE userId = ? AND feedId = ?`
       )
-      .bind(...values, id)
+      .bind(...values, userId, id)
       .run();
   }
-  return readFeed(db, id);
+  return readFeed(db, userId, id);
 }
 
 export async function updateEntry(
   db: D1Database,
+  userId: string,
   feedId: number,
   entryId: string,
   data: Record<string, unknown>
@@ -222,18 +254,38 @@ export async function updateEntry(
   const fields = (["openedAt", "archivedAt", "starredAt"] as const).filter(
     key => key in data
   );
+  const existing = await db
+    .prepare(
+      `SELECT e.id FROM entries e JOIN UserFeeds uf
+    ON uf.feedId = e.feedId WHERE uf.userId = ? AND e.feedId = ? AND e.entryId = ?`
+    )
+    .bind(userId, feedId, entryId)
+    .first<{ id: number }>();
+  if (!existing) return null;
   if (fields.length > 0) {
+    for (const field of fields) {
+      if (data[field] !== null && typeof data[field] !== "string")
+        throw new InputError(`${field} must be a string or null`);
+    }
     const values = fields.map(key => data[key]);
     await db
       .prepare(
-        `UPDATE entries SET ${fields.map(key => `${key} = ?`).join(", ")} WHERE feedId = ? AND entryId = ?`
+        `INSERT INTO UserEntryStates (userId, entryId, ${fields.join(", ")})
+         VALUES (?, ?, ${fields.map(() => "?").join(", ")})
+         ON CONFLICT(userId, entryId) DO UPDATE SET ${fields.map(key => `${key} = excluded.${key}`).join(", ")}`
       )
-      .bind(...values, feedId, entryId)
+      .bind(userId, existing.id, ...values)
       .run();
   }
   return db
-    .prepare("SELECT * FROM entries WHERE feedId = ? AND entryId = ?")
-    .bind(feedId, entryId)
+    .prepare(
+      `SELECT e.id, e.feedId, e.entryId, e.title, e.link, e.author,
+      e.published, e.updated, e.description, e.thumbnail, e.content,
+      s.openedAt, s.archivedAt, s.starredAt FROM entries e
+      LEFT JOIN UserEntryStates s ON s.entryId = e.id AND s.userId = ?
+      WHERE e.id = ?`
+    )
+    .bind(userId, existing.id)
     .first<EntryRow>();
 }
 
@@ -260,16 +312,17 @@ export function normalizeTagName(input: unknown): string {
 
 export async function createTag(
   db: D1Database,
+  userId: string,
   input: unknown
 ): Promise<TagRow> {
   const name = normalizeTagName(input);
   await db
-    .prepare("INSERT OR IGNORE INTO Tags (name) VALUES (?)")
-    .bind(name)
+    .prepare("INSERT OR IGNORE INTO UserTags (userId, name) VALUES (?, ?)")
+    .bind(userId, name)
     .run();
   const row = await db
-    .prepare("SELECT id, name FROM Tags WHERE name = ?")
-    .bind(name)
+    .prepare("SELECT id, name FROM UserTags WHERE userId = ? AND name = ?")
+    .bind(userId, name)
     .first<TagRow>();
   if (!row) throw new Error("Tag was not saved");
   return row;
@@ -294,10 +347,11 @@ export async function refreshStoredFeed(
 export async function refreshDueFeeds(db: D1Database): Promise<void> {
   const { results } = await db
     .prepare(
-      `SELECT id FROM feeds
-    WHERE refreshIntervalMins IS NOT NULL AND
+      `SELECT f.id FROM feeds f JOIN UserFeeds uf ON uf.feedId = f.id
+    WHERE uf.refreshIntervalMins IS NOT NULL AND
     (fetchedAt IS NULL OR strftime('%s', fetchedAt) IS NULL OR
-      (unixepoch('now') - unixepoch(fetchedAt)) >= refreshIntervalMins * 60)`
+      (unixepoch('now') - unixepoch(fetchedAt)) >= uf.refreshIntervalMins * 60)
+    GROUP BY f.id`
     )
     .all<{ id: number }>();
   for (const { id } of results) {

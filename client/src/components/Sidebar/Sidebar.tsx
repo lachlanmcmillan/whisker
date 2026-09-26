@@ -20,19 +20,24 @@ interface SidebarProps {
   onSelectFeed: (feedId: number) => void;
   onClose: () => void;
   onOpenManager: () => void;
-  onOpenExplorer: () => void;
+  onOpenAccount: () => void;
 }
 
 export function Sidebar(props: SidebarProps) {
   const isAllInbox = () =>
     props.filter === "all" && props.tagId === "all" && props.feedId === null;
-  const isUnreadInbox = () => props.filter === "unread" && props.feedId === null;
+  const isUnreadInbox = () =>
+    props.filter === "unread" && props.feedId === null;
 
   return (
     <aside class={styles.sidebar}>
       <div class={styles.header}>
         <span class={styles.title}>Library</span>
-        <button class={styles.iconBtn} onClick={props.onClose} aria-label="Close sidebar">
+        <button
+          class={styles.iconBtn}
+          onClick={props.onClose}
+          aria-label="Close sidebar"
+        >
           <Icon name="close" size={14} />
         </button>
       </div>
@@ -51,7 +56,9 @@ export function Sidebar(props: SidebarProps) {
           onClick={props.onSelectUnread}
         >
           <span>Unread</span>
-          <span class={`${styles.count} ${styles.countAccent}`}>{props.unreadCount}</span>
+          <span class={`${styles.count} ${styles.countAccent}`}>
+            {props.unreadCount}
+          </span>
         </button>
       </div>
 
@@ -61,7 +68,9 @@ export function Sidebar(props: SidebarProps) {
           {({ tag, hue, count }) => (
             <button
               class={`${styles.item} ${
-                props.feedId === null && props.tagId === tag.id ? styles.itemActive : ""
+                props.feedId === null && props.tagId === tag.id ?
+                  styles.itemActive
+                : ""
               }`}
               onClick={() => props.onSelectTag(tag.id)}
             >
@@ -104,8 +113,8 @@ export function Sidebar(props: SidebarProps) {
         <button class={styles.item} onClick={props.onOpenManager}>
           <span>Feeds & tags</span>
         </button>
-        <button class={styles.item} onClick={props.onOpenExplorer}>
-          <span>DB Explorer</span>
+        <button class={styles.item} onClick={props.onOpenAccount}>
+          <span>Account</span>
         </button>
       </div>
     </aside>
