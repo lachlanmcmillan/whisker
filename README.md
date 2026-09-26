@@ -14,7 +14,7 @@ The frontend is a SolidJS app. A Bun server or Cloudflare Worker fetches RSS and
 
 ## Current status
 
-You can subscribe to feeds, browse entries in grid or list view, organize feeds with tags, mark entries read, archive or star entries, and refresh feeds. A background schedule refreshes feeds whose configured interval is due.
+You can subscribe to one or many feeds at once, browse entries in grid or list view, organize feeds with tags, mark entries read, archive or star entries, and refresh feeds. Bulk imports validate every line before saving anything. A background schedule refreshes feeds whose configured interval is due.
 
 ## Cloudflare Worker and D1
 

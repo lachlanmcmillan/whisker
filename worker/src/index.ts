@@ -10,9 +10,9 @@ import {
   readFeedTags,
   refreshDueFeeds,
   refreshStoredFeed,
+  importFeeds,
   updateEntry,
   updateFeed,
-  upsertFeed,
   type TagRow,
 } from "./data";
 
@@ -81,21 +81,72 @@ async function api(req: Request, env: Env): Promise<Response | null> {
 
     if (method === "POST" && pathname === "/feeds") {
       const body = await bodyObject(req);
-      if (typeof body.url !== "string" || !body.url) {
-        throw new InputError("url is required");
+      const submitted =
+        Array.isArray(body.urls) ? body.urls
+        : typeof body.url === "string" ? [body.url]
+        : null;
+      if (!submitted || submitted.length === 0 || submitted.length > 100) {
+        throw new InputError("Provide 1 to 100 feed URLs");
       }
-      const parsed = await fetchFeed(body.url);
-      if (parsed.error)
-        return fail(parsed.error.code, parsed.error.message, 400);
-      const id = await upsertFeed(db, parsed.data);
-      await db
-        .prepare(
-          `INSERT OR IGNORE INTO UserFeeds
-        (userId, feedId, createdAt) VALUES (?, ?, ?)`
-        )
-        .bind(user.id, id, new Date().toISOString())
-        .run();
-      return ok(parsed.data, 201);
+      const urls = submitted.map((value, index) => {
+        if (typeof value !== "string" || !value.trim())
+          throw new InputError(`Line ${index + 1}: enter a URL`);
+        const url = value.trim();
+        try {
+          const parsed = new URL(url);
+          if (
+            !["http:", "https:"].includes(parsed.protocol) ||
+            parsed.username ||
+            parsed.password
+          )
+            throw new Error("unsupported URL");
+        } catch {
+          throw new InputError(
+            `Line ${index + 1}: enter a valid HTTP or HTTPS URL`
+          );
+        }
+        return url;
+      });
+      const parsedFeeds: Awaited<ReturnType<typeof fetchFeed>>[] = new Array(
+        urls.length
+      );
+      const fetchErrors: boolean[] = new Array(urls.length).fill(false);
+      let nextIndex = 0;
+      await Promise.all(
+        Array.from({ length: Math.min(3, urls.length) }, async () => {
+          while (nextIndex < urls.length) {
+            const index = nextIndex++;
+            try {
+              parsedFeeds[index] = await fetchFeed(urls[index]);
+            } catch (error) {
+              console.error("feed_import_fetch_failed", index + 1, error);
+              fetchErrors[index] = true;
+            }
+          }
+        })
+      );
+      const thrownIndex = fetchErrors.findIndex(Boolean);
+      if (thrownIndex !== -1)
+        return fail(
+          "invalid_feed",
+          `Line ${thrownIndex + 1}: could not read feed`,
+          400
+        );
+      const invalidIndex = parsedFeeds.findIndex(result => result.error);
+      if (invalidIndex !== -1) {
+        const failure = parsedFeeds[invalidIndex];
+        return fail(
+          "invalid_feed",
+          `Line ${invalidIndex + 1}: ${failure.error!.message}`,
+          400
+        );
+      }
+      await importFeeds(
+        db,
+        user.id,
+        parsedFeeds.map(result => result.data!)
+      );
+      return ok({ imported: urls.length }, 201);
     }
 
     const feedId = idFrom(pathname, /^\/feeds\/(\d+)$/);

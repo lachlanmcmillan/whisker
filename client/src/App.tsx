@@ -1,7 +1,7 @@
 import { createMemo, createSignal, For, Show, onMount } from "solid-js";
 import type { Feed, FeedEntry, Tag } from "$lib/api";
 import {
-  addFeed,
+  addFeeds,
   currentUser,
   refreshFeed,
   setOnUnauthorized,
@@ -155,8 +155,14 @@ function App() {
     }
   };
 
-  const handleFeedAdded = async () => {
+  const handleFeedAdded = async (count: number) => {
     const data = await loadFeeds();
+    if (count > 1) {
+      setFeedId(null);
+      setTagId("all");
+      setFilter("all");
+      return;
+    }
     const last = data[data.length - 1];
     if (last) setFeedId(last.id);
   };
@@ -448,29 +454,32 @@ function MoodTile(props: MoodTileProps) {
 }
 
 interface AddFeedButtonProps {
-  onAdded: () => void;
+  onAdded: (count: number) => void;
 }
 
 function AddFeedButton(props: AddFeedButtonProps) {
   const [open, setOpen] = createSignal(false);
-  const [url, setUrl] = createSignal("");
+  const [urls, setUrls] = createSignal("");
   const [error, setError] = createSignal<string | null>(null);
   const [submitting, setSubmitting] = createSignal(false);
 
   const close = () => {
     setOpen(false);
-    setUrl("");
+    setUrls("");
     setError(null);
   };
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
-    const value = url().trim();
-    if (!value) return;
+    const lines = urls()
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+    if (lines.length === 0) return;
     setError(null);
     setSubmitting(true);
     try {
-      await addFeed(value);
+      await addFeeds(lines);
     } catch (e) {
       setSubmitting(false);
       setError(e instanceof Error ? e.message : String(e));
@@ -478,7 +487,7 @@ function AddFeedButton(props: AddFeedButtonProps) {
     }
     setSubmitting(false);
     close();
-    props.onAdded();
+    props.onAdded(lines.length);
   };
 
   return (
@@ -494,18 +503,23 @@ function AddFeedButton(props: AddFeedButtonProps) {
         <div class={styles.popoverBackdrop} onClick={close} />
         <div class={styles.popoverPanel}>
           <form onSubmit={handleSubmit}>
-            <input
+            <textarea
               class={styles.popoverInput}
-              type="url"
-              placeholder="https://example.com/feed.xml"
-              value={url()}
+              rows={6}
+              placeholder={
+                "https://example.com/feed.xml\nhttps://another-site.com"
+              }
+              value={urls()}
               onInput={e => {
-                setUrl(e.currentTarget.value);
+                setUrls(e.currentTarget.value);
                 setError(null);
               }}
               disabled={submitting()}
               autofocus
             />
+            <p class={styles.popoverHint}>
+              One feed or website URL per line. All lines must be valid.
+            </p>
             <Show when={error()}>
               {msg => <p class={styles.error}>{msg()}</p>}
             </Show>

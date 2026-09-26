@@ -107,14 +107,18 @@ type EditableFeedFields = Pick<
   "title" | "description" | "author" | "image" | "link" | "refreshIntervalMins"
 >;
 
-export async function addFeed(url: string): Promise<void> {
+export async function addFeeds(urls: string[]): Promise<void> {
   const res = await fetch(`${BASE}/feeds`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({ urls }),
   });
   await handleResponse(res);
+}
+
+export async function addFeed(url: string): Promise<void> {
+  await addFeeds([url]);
 }
 
 export async function deleteFeed(id: number): Promise<void> {

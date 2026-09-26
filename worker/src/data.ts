@@ -189,6 +189,100 @@ export async function upsertFeed(
   return row.id;
 }
 
+export async function importFeeds(
+  db: D1Database,
+  userId: string,
+  feeds: ParsedFeed[]
+): Promise<void> {
+  const feedJson = JSON.stringify(
+    feeds.map(feed => ({
+      title: feed.title,
+      description: feed.description,
+      link: feed.link,
+      feedUrl: feed.feedUrl,
+      author: feed.author,
+      published: feed.published,
+      image: feed.image ?? null,
+      fetchedAt: feed.fetchedAt ?? null,
+    }))
+  );
+  const entryJson = JSON.stringify(
+    feeds.flatMap(feed =>
+      feed.entries.map(entry => ({
+        feedLink: feed.link,
+        entryId: entry.entryId,
+        title: entry.title,
+        link: entry.link,
+        author: entry.author,
+        published: entry.published,
+        updated: entry.updated ?? null,
+        description: entry.description,
+        thumbnail: entry.thumbnail ?? null,
+        content: entry.content ?? null,
+      }))
+    )
+  );
+  const encoder = new TextEncoder();
+  if (
+    encoder.encode(feedJson).length > 1_800_000 ||
+    encoder.encode(entryJson).length > 1_800_000
+  )
+    throw new InputError("Import is too large; use smaller batches");
+
+  // One D1 batch is a transaction: a failed feed or entry write rolls back
+  // every subscription and content change in this import.
+  await db.batch([
+    db
+      .prepare(
+        `INSERT INTO feeds
+      (title, description, link, feedUrl, author, published, image, fetchedAt)
+      SELECT json_extract(j.value, '$.title'),
+        COALESCE(json_extract(j.value, '$.description'), ''),
+        json_extract(j.value, '$.link'),
+        COALESCE(json_extract(j.value, '$.feedUrl'), ''),
+        COALESCE(json_extract(j.value, '$.author'), ''),
+        COALESCE(json_extract(j.value, '$.published'), ''),
+        json_extract(j.value, '$.image'), json_extract(j.value, '$.fetchedAt')
+      FROM json_each(?) AS j WHERE 1
+      ON CONFLICT(link) DO UPDATE SET
+        title = excluded.title, description = excluded.description,
+        feedUrl = excluded.feedUrl, author = excluded.author,
+        published = excluded.published, image = excluded.image,
+        fetchedAt = excluded.fetchedAt`
+      )
+      .bind(feedJson),
+    db
+      .prepare(
+        `INSERT INTO entries
+      (feedId, entryId, title, link, author, published, updated,
+       description, thumbnail, content)
+      SELECT f.id, json_extract(j.value, '$.entryId'),
+        COALESCE(json_extract(j.value, '$.title'), ''),
+        COALESCE(json_extract(j.value, '$.link'), ''),
+        COALESCE(json_extract(j.value, '$.author'), ''),
+        COALESCE(json_extract(j.value, '$.published'), ''),
+        json_extract(j.value, '$.updated'),
+        COALESCE(json_extract(j.value, '$.description'), ''),
+        json_extract(j.value, '$.thumbnail'), json_extract(j.value, '$.content')
+      FROM json_each(?) AS j
+      JOIN feeds f ON f.link = json_extract(j.value, '$.feedLink') WHERE 1
+      ON CONFLICT(feedId, entryId) DO UPDATE SET
+        title = excluded.title, link = excluded.link,
+        author = excluded.author, published = excluded.published,
+        updated = excluded.updated, description = excluded.description,
+        thumbnail = excluded.thumbnail, content = excluded.content`
+      )
+      .bind(entryJson),
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO UserFeeds (userId, feedId, createdAt)
+      SELECT ?, f.id, ? FROM json_each(?) AS j
+      JOIN feeds f ON f.link = json_extract(j.value, '$.link')`
+      )
+      .bind(userId, new Date().toISOString(), feedJson),
+  ]);
+}
+
 const editableFeedFields = [
   "titleOverride",
   "descriptionOverride",

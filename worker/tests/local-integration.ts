@@ -185,6 +185,39 @@ assert.equal(
   (await call("/feeds", "GET", undefined, memberCookie)).body.data.length,
   1
 );
+
+const rejectedImport = await call(
+  "/feeds",
+  "POST",
+  {
+    urls: ["https://hnrss.org/frontpage", "https://example.com"],
+  },
+  ownerCookie
+);
+assert.equal(rejectedImport.status, 400, JSON.stringify(rejectedImport.body));
+assert.match(rejectedImport.body.error.message, /Line 2:/);
+assert.equal(
+  (await call("/feeds", "GET", undefined, ownerCookie)).body.data.length,
+  0
+);
+
+const imported = await call(
+  "/feeds",
+  "POST",
+  {
+    urls: ["https://hnrss.org/frontpage", "https://hnrss.org/newest"],
+  },
+  ownerCookie
+);
+assert.equal(imported.status, 201, JSON.stringify(imported.body));
+assert.equal(
+  (await call("/feeds", "GET", undefined, ownerCookie)).body.data.length,
+  2
+);
+assert.equal(
+  (await call("/feeds", "GET", undefined, memberCookie)).body.data.length,
+  1
+);
 console.log(
-  "Local owner, invite, session, and two-user isolation checks passed"
+  "Local auth, two-user isolation, and atomic bulk import checks passed"
 );
