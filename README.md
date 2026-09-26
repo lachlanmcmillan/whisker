@@ -4,48 +4,35 @@ A personal feed reader that runs in your browser.
 
 ## Why
 
-You own it. No proprietary service collecting data on you. No risk of it getting shut down. No login, no account, no algorithm deciding what you see.
+You own it. There is no recommendation algorithm or third-party reader account. An API key protects your personal feed data.
 
 Whisker tracks YouTube channels and blogs so you know when there's new content, and keeps track of what you have and haven't seen/read.
 
 ## How it works
 
-Feed fetching happens in the browser, not on a server. This means no central server IP to get rate-limited or blocked by services. If this reader is shared with friends, the fetching load is distributed across their browsers.
-
-The database is SQLite WASM running in the browser via OPFS. RSS and Atom feeds are supported with auto-discovery from website URLs.
+The frontend is a SolidJS app. A Bun server or Cloudflare Worker fetches RSS and Atom feeds, discovers feed URLs from web pages, and stores subscriptions and reading state in SQLite or Cloudflare D1. The client talks to that API using an API key.
 
 ## Current status
 
-Working single-browser prototype. You can subscribe to feeds, browse entries in grid or list view, toggle read state, and refresh feeds. It's daily-driver ready on one device.
+You can subscribe to feeds, browse entries in grid or list view, organize feeds with tags, mark entries read, archive or star entries, and refresh feeds. A background schedule refreshes feeds whose configured interval is due.
 
-## The sync problem
+## Cloudflare Worker and D1
 
-The architecture is local-first: SQLite lives in the browser via OPFS, which is per-origin and per-browser. There is no path from one browser to another without introducing some form of sync.
+The Worker serves the built frontend and API from one origin. D1 stores feeds, entries, tags, and reading state. A cron trigger checks for feeds due for refresh every five minutes. A new D1 database starts empty; the existing SQLite database is not imported automatically.
 
-### What we know
+Current deployment: https://whisker.lachy-mcm-services.workers.dev
 
-- Sync is the only blocker to daily use across devices
-- Feed fetching must stay client-side to distribute IP load (this is a feature, not a limitation)
-- A sync mechanism should be simple. For one user across a few devices, latest-write-wins at the row level is sufficient. No CRDTs or complex merge logic needed
-- Each row has a timestamp; when two copies disagree, the newer write wins
-- This works because feed reader data (subscriptions, read state, entries) doesn't have meaningful merge conflicts
+1. Authenticate Wrangler with `bunx wrangler login` or set `CLOUDFLARE_API_TOKEN`.
+2. The `whisker` D1 database is bound in `wrangler.jsonc`. For a different Cloudflare account, create a database with `bunx wrangler d1 create whisker --location apac` and replace its database ID there.
+3. Apply the schema with `bun run worker:d1:remote`.
+4. Put `API_KEY="your-key"` in the gitignored `.dev.vars` file. Use a long, random value and enter the same key in Whisker's login form.
+5. Deploy with `bun run worker:deploy`. This uploads the secret with the Worker. Wrangler prints the `workers.dev` URL.
 
-### What syncs
+For local Worker development, put `API_KEY="your-key"` in `.dev.vars`, run `bun run worker:d1:local`, then `bun run worker:dev`.
 
-- Feed subscriptions (add/remove)
-- Read/unread state (the primary thing that needs to travel between devices)
-- Entry metadata (though entries mostly come from the feed itself)
+The old Bun server deployment instructions are below for installations that still use it.
 
-### What doesn't need to sync
-
-- Cached thumbnails (each device can fetch its own)
-- Full article content (fetched fresh from the feed)
-
-### Open question
-
-How the sync data travels between devices. The "relay" could be anything that can store and retrieve a blob: a cloud folder (iCloud Drive, Dropbox), a GitHub repo/gist, an S3 bucket, a tiny API on a free tier, or something else entirely. The transport is an open design decision.
-
-## Deploy
+## Legacy Bun server deployment
 
 ### Prerequisites
 
@@ -76,15 +63,15 @@ The client is deployed to GitHub Pages via a GitHub Actions workflow on push to 
 
 Set these in `.env.local` at the repo root (local machine, for deploy script):
 
-| Variable | Description | Example |
-|---|---|---|
-| `DEPLOY_SSH_HOST` | SSH destination for the server | `ubuntu@1.2.3.4` |
-| `DEPLOY_SERVER_PORT` | Port the server listens on (default: 3000) | `3000` |
-| `DEPLOY_REMOTE_DIR` | Path to the repo on the server | `~/whisker` |
+| Variable             | Description                                | Example          |
+| -------------------- | ------------------------------------------ | ---------------- |
+| `DEPLOY_SSH_HOST`    | SSH destination for the server             | `ubuntu@1.2.3.4` |
+| `DEPLOY_SERVER_PORT` | Port the server listens on (default: 3000) | `3000`           |
+| `DEPLOY_REMOTE_DIR`  | Path to the repo on the server             | `~/whisker`      |
 
 Set these in `.env.local` on the remote server:
 
-| Variable | Description | Example |
-|---|---|---|
-| `API_KEY` | API key for authenticating requests. Alphanumeric only (no symbols) | `abc123...` |
-| `DEPLOY_CORS_ORIGIN` | Allowed CORS origin for the frontend | `https://whisker.lmcmillan.dev` |
+| Variable             | Description                                                         | Example                         |
+| -------------------- | ------------------------------------------------------------------- | ------------------------------- |
+| `API_KEY`            | API key for authenticating requests. Alphanumeric only (no symbols) | `abc123...`                     |
+| `DEPLOY_CORS_ORIGIN` | Allowed CORS origin for the frontend                                | `https://whisker.lmcmillan.dev` |

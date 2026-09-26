@@ -26,6 +26,8 @@ dist-ssr
 *.db
 *.db-shm
 *.db-wal
+.wrangler/
+.dev.vars*
 
 server/whisker.db
 server/*.jsonl

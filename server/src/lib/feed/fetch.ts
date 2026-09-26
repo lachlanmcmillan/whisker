@@ -47,7 +47,9 @@ function discoverFeedUrl(html: string, baseUrl: string): string | null {
 async function fetchText(url: string): AsyncResult<string> {
   let response: Response;
   try {
-    response = await fetch(url);
+    response = await fetch(url, {
+      headers: { "User-Agent": "Whisker/1.0 (personal RSS reader)" },
+    });
   } catch (e) {
     return err("fetch_failed", `Network error fetching ${url}`, {
       url,

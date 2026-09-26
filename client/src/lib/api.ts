@@ -1,4 +1,6 @@
-const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+const BASE =
+  import.meta.env.VITE_API_URL ??
+  (import.meta.env.PROD ? "" : "http://localhost:3000");
 const API_KEY_STORAGE_KEY = "whisker_api_key";
 
 let onUnauthorized: (() => void) | null = null;

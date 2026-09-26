@@ -12,16 +12,24 @@
     }
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260926.1",
     "@types/bun": "^1.3.11",
     "chalk": "^5.6.2",
     "prettier": "^3.8.1",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "wrangler": "^4.141.0"
   },
   "scripts": {
     "dev": "bun run --parallel --filter @whisker/server --filter @whisker/client dev",
     "prettier": "prettier --write \"**/src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "deploy-server-ssh": "bun run ./scripts/deploy-server-ssh.ts",
     "db:pull-latest-prod": "bun run ./scripts/download-db.ts",
-    "tsc": "bun run --sequential --filter @whisker/server --filter @whisker/client tsc"
+    "tsc": "bun run --sequential --filter @whisker/server --filter @whisker/client tsc",
+    "worker:build": "bun run --filter @whisker/client build",
+    "worker:tsc": "tsc -p worker/tsconfig.json",
+    "worker:dev": "bun run worker:build && wrangler dev",
+    "worker:deploy": "bun run worker:build && wrangler deploy --secrets-file .dev.vars",
+    "worker:d1:local": "wrangler d1 migrations apply DB --local",
+    "worker:d1:remote": "wrangler d1 migrations apply DB --remote"
   }
 }
