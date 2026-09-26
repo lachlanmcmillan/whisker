@@ -46,34 +46,60 @@ async function loadFeeds() {
   return data;
 }
 
-async function toggleEntryRead(
+type EntryFlag = "openedAt" | "archivedAt" | "starredAt";
+
+// Entry flags are applied locally first and rolled back if the request fails.
+async function setEntryFlag(
+  feedId: number,
+  entryId: string,
+  flag: EntryFlag,
+  currentlySet: boolean
+) {
+  const value = currentlySet ? null : new Date().toISOString();
+  const entry = feeds
+    .find(f => f.id === feedId)
+    ?.entries.find(e => e.entryId === entryId);
+  const previous = entry?.[flag] ?? null;
+  const setFlag = (v: string | null) =>
+    setFeeds(
+      f => f.id === feedId,
+      "entries",
+      e => e.entryId === entryId,
+      flag,
+      v
+    );
+  setFlag(value);
+
+  try {
+    await updateEntry(feedId, entryId, { [flag]: value });
+  } catch (e) {
+    setFlag(previous);
+    throw e;
+  }
+}
+
+function toggleEntryRead(
   feedId: number,
   entryId: string,
   currentlyOpened: boolean
 ) {
-  const openedAt = currentlyOpened ? null : new Date().toISOString();
-  await updateEntry(feedId, entryId, { openedAt });
-  await loadFeeds();
+  return setEntryFlag(feedId, entryId, "openedAt", currentlyOpened);
 }
 
-async function toggleEntryArchived(
+function toggleEntryArchived(
   feedId: number,
   entryId: string,
   currentlyArchived: boolean
 ) {
-  const archivedAt = currentlyArchived ? null : new Date().toISOString();
-  await updateEntry(feedId, entryId, { archivedAt });
-  await loadFeeds();
+  return setEntryFlag(feedId, entryId, "archivedAt", currentlyArchived);
 }
 
-async function toggleEntryStarred(
+function toggleEntryStarred(
   feedId: number,
   entryId: string,
   currentlyStarred: boolean
 ) {
-  const starredAt = currentlyStarred ? null : new Date().toISOString();
-  await updateEntry(feedId, entryId, { starredAt });
-  await loadFeeds();
+  return setEntryFlag(feedId, entryId, "starredAt", currentlyStarred);
 }
 
 async function editFeed(
