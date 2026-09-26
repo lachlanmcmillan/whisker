@@ -1,7 +1,4 @@
-import {
-  fetchFeed,
-  type Feed as ParsedFeed,
-} from "./feed/fetch";
+import { fetchFeed, type Feed as ParsedFeed } from "./feed/fetch";
 
 export interface FeedRow {
   id: number;
@@ -28,6 +25,7 @@ export interface EntryRow {
   description: string;
   thumbnail: string | null;
   content: string | null;
+  durationSeconds: number | null;
   openedAt: string | null;
   archivedAt: string | null;
   starredAt: string | null;
@@ -63,7 +61,7 @@ export async function readFeeds(
       .prepare(
         `SELECT e.id, e.feedId, e.entryId, e.title, e.link, e.author,
       e.published, e.updated, e.description, e.thumbnail, e.content,
-      s.openedAt, s.archivedAt, s.starredAt FROM entries e
+      e.durationSeconds, s.openedAt, s.archivedAt, s.starredAt FROM entries e
       JOIN UserFeeds uf ON uf.feedId = e.feedId AND uf.userId = ?
       LEFT JOIN UserEntryStates s ON s.entryId = e.id AND s.userId = ?
       ORDER BY e.published DESC`
@@ -378,7 +376,7 @@ export async function updateEntry(
     .prepare(
       `SELECT e.id, e.feedId, e.entryId, e.title, e.link, e.author,
       e.published, e.updated, e.description, e.thumbnail, e.content,
-      s.openedAt, s.archivedAt, s.starredAt FROM entries e
+      e.durationSeconds, s.openedAt, s.archivedAt, s.starredAt FROM entries e
       LEFT JOIN UserEntryStates s ON s.entryId = e.id AND s.userId = ?
       WHERE e.id = ?`
     )
@@ -441,7 +439,8 @@ export async function refreshStoredFeed(
   return true;
 }
 
-export async function refreshDueFeeds(db: D1Database): Promise<void> {
+// Returns how many feeds were refreshed successfully.
+export async function refreshDueFeeds(db: D1Database): Promise<number> {
   const { results } = await db
     .prepare(
       `SELECT f.id FROM feeds f JOIN UserFeeds uf ON uf.feedId = f.id
@@ -451,11 +450,13 @@ export async function refreshDueFeeds(db: D1Database): Promise<void> {
     GROUP BY f.id`
     )
     .all<{ id: number }>();
+  let refreshed = 0;
   for (const { id } of results) {
     try {
-      await refreshStoredFeed(db, id);
+      if (await refreshStoredFeed(db, id)) refreshed++;
     } catch (error) {
       console.error("background_refresh_failed", id, error);
     }
   }
+  return refreshed;
 }

@@ -69,6 +69,7 @@ export interface FeedEntry {
   description: string;
   thumbnail?: string;
   content?: string;
+  durationSeconds?: number | null;
   openedAt?: string | null;
   archivedAt?: string | null;
   starredAt?: string | null;

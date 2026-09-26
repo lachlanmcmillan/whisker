@@ -16,11 +16,22 @@ import {
   updateFeed,
   type TagRow,
 } from "./data";
+import { fillVideoDurations } from "./youtube";
 
 interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
   API_KEY?: string;
+  YOUTUBE_API_KEY?: string;
+}
+
+// Missing video lengths shouldn't fail the request that triggered the lookup.
+async function fillDurations(env: Env): Promise<void> {
+  try {
+    await fillVideoDurations(env.DB, env.YOUTUBE_API_KEY);
+  } catch (error) {
+    console.error("youtube_duration_failed", error);
+  }
 }
 
 function json(data: unknown, status = 200): Response {
@@ -175,6 +186,7 @@ async function api(req: Request, env: Env): Promise<Response | null> {
         user.id,
         parsedFeeds.map(result => result.data!)
       );
+      await fillDurations(env);
       return ok({ imported: urls.length }, 201);
     }
 
@@ -206,6 +218,7 @@ async function api(req: Request, env: Env): Promise<Response | null> {
         .first();
       if (!subscribed) return fail("feed_not_found", "Feed not found", 404);
       const found = await refreshStoredFeed(db, refreshId);
+      if (found) await fillDurations(env);
       return found ? ok() : fail("feed_not_found", "Feed not found", 404);
     }
 
@@ -400,6 +413,10 @@ export default {
     env: Env,
     ctx: ExecutionContext
   ): Promise<void> {
-    ctx.waitUntil(refreshDueFeeds(env.DB));
+    ctx.waitUntil(
+      refreshDueFeeds(env.DB).then(refreshed =>
+        refreshed > 0 ? fillDurations(env) : undefined
+      )
+    );
   },
 } satisfies ExportedHandler<Env>;

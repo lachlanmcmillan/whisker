@@ -4,6 +4,7 @@ import { FeedAvatar, titleHue } from "$components/FeedAvatar/FeedAvatar";
 import { CachedThumbnail } from "$components/CachedThumbnail/CachedThumbnail";
 import { Icon, entryTypeFromUrl } from "$components/Icon/Icon";
 import { shortTimeAgo, timeAgo } from "$lib/timeAgo";
+import { formatDuration } from "$lib/duration";
 import { CheckButton } from "$components/CheckButton/CheckButton";
 import { ArchiveButton } from "$components/ArchiveButton/ArchiveButton";
 import { toggleEntryRead, toggleEntryArchived } from "$stores/feeds.store";
@@ -89,6 +90,11 @@ export function EntryCard(props: EntryCardProps) {
               alt={props.entry.title}
               class={styles.thumb}
             />
+          )}
+        </Show>
+        <Show when={props.entry.durationSeconds}>
+          {seconds => (
+            <span class={styles.duration}>{formatDuration(seconds())}</span>
           )}
         </Show>
       </a>
