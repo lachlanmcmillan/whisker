@@ -4,10 +4,21 @@
   gap: 10px;
   cursor: pointer;
   min-width: 0;
+  position: relative;
 }
 
 .card[data-read="true"] {
   opacity: var(--read-opacity);
+}
+
+.card > button {
+  background: var(--surface-1);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+}
+
+.card:hover > button,
+.card > button:focus-visible {
+  opacity: 1;
 }
 
 .thumbLink {
@@ -28,7 +39,11 @@
   aspect-ratio: 16 / 9;
   border-radius: var(--radius-lg);
   background:
-    repeating-linear-gradient(45deg, transparent 0 22px, var(--thumb-stripe) 22px 23px),
+    repeating-linear-gradient(
+      45deg,
+      transparent 0 22px,
+      var(--thumb-stripe) 22px 23px
+    ),
     linear-gradient(
       135deg,
       oklch(var(--thumb-l1) var(--thumb-c) var(--thumb-hue, 60)) 0%,

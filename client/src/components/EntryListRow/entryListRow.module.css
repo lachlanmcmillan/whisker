@@ -6,10 +6,16 @@
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   min-width: 0;
+  position: relative;
 }
 
 .row[data-read="true"] {
   opacity: var(--read-opacity);
+}
+
+.row:hover > button,
+.row > button:focus-visible {
+  opacity: 1;
 }
 
 .thumbLink {
@@ -32,7 +38,11 @@
   aspect-ratio: 16 / 9;
   border-radius: var(--radius-lg);
   background:
-    repeating-linear-gradient(45deg, transparent 0 22px, var(--thumb-stripe) 22px 23px),
+    repeating-linear-gradient(
+      45deg,
+      transparent 0 22px,
+      var(--thumb-stripe) 22px 23px
+    ),
     linear-gradient(
       135deg,
       oklch(var(--thumb-l1) var(--thumb-c) var(--thumb-hue, 60)) 0%,

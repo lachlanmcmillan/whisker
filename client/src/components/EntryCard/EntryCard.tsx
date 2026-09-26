@@ -4,7 +4,9 @@ import { FeedAvatar, titleHue } from "$components/FeedAvatar/FeedAvatar";
 import { CachedThumbnail } from "$components/CachedThumbnail/CachedThumbnail";
 import { Icon, entryTypeFromUrl } from "$components/Icon/Icon";
 import { timeAgo } from "$lib/timeAgo";
-import { toggleEntryRead } from "$stores/feeds.store";
+import { CheckButton } from "$components/CheckButton/CheckButton";
+import { ArchiveButton } from "$components/ArchiveButton/ArchiveButton";
+import { toggleEntryRead, toggleEntryArchived } from "$stores/feeds.store";
 import styles from "./entryCard.module.css";
 
 interface EntryCardProps {
@@ -22,6 +24,24 @@ export function EntryCard(props: EntryCardProps) {
 
   return (
     <article class={styles.card} data-read={isRead() ? "true" : "false"}>
+      <CheckButton
+        checked={isRead()}
+        onClick={() => {
+          if (!props.entry.feedId) return;
+          toggleEntryRead(props.entry.feedId, props.entry.entryId, isRead());
+        }}
+      />
+      <ArchiveButton
+        archived={!!props.entry.archivedAt}
+        onClick={() => {
+          if (!props.entry.feedId) return;
+          toggleEntryArchived(
+            props.entry.feedId,
+            props.entry.entryId,
+            !!props.entry.archivedAt
+          );
+        }}
+      />
       <a
         class={styles.thumbLink}
         href={props.entry.link}
