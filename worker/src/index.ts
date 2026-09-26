@@ -9,6 +9,7 @@ import {
   readFeeds,
   readFeedTags,
   refreshDueFeeds,
+  refreshIntervalFrom,
   refreshStoredFeed,
   importFeeds,
   updateEntry,
@@ -45,6 +46,19 @@ async function bodyObject(req: Request): Promise<Record<string, unknown>> {
   return body as Record<string, unknown>;
 }
 
+function feedIdsFrom(body: Record<string, unknown>): number[] {
+  const ids = body.feedIds;
+  if (
+    !Array.isArray(ids) ||
+    ids.length === 0 ||
+    ids.length > 1000 ||
+    !ids.every(id => Number.isInteger(id))
+  ) {
+    throw new InputError("feedIds must be an array of 1 to 1000 feed ids");
+  }
+  return ids as number[];
+}
+
 function idFrom(path: string, pattern: RegExp): number | null {
   const match = pattern.exec(path);
   return match ? Number(match[1]) : null;
@@ -78,6 +92,21 @@ async function api(req: Request, env: Env): Promise<Response | null> {
   try {
     if (method === "GET" && pathname === "/feeds")
       return ok(await readFeeds(db, user.id));
+
+    // Bulk update; only the refresh interval can be changed across feeds.
+    if (method === "PATCH" && pathname === "/feeds") {
+      const body = await bodyObject(req);
+      const feedIds = feedIdsFrom(body);
+      const mins = refreshIntervalFrom(body.refreshIntervalMins);
+      await db
+        .prepare(
+          `UPDATE UserFeeds SET refreshIntervalMins = ?
+          WHERE userId = ? AND feedId IN (SELECT value FROM json_each(?))`
+        )
+        .bind(mins, user.id, JSON.stringify(feedIds))
+        .run();
+      return ok();
+    }
 
     if (method === "POST" && pathname === "/feeds") {
       const body = await bodyObject(req);
@@ -240,6 +269,51 @@ async function api(req: Request, env: Env): Promise<Response | null> {
     if (method === "POST" && pathname === "/tags") {
       const body = await bodyObject(req);
       return ok(await createTag(db, user.id, body.name));
+    }
+
+    if (method === "POST" && pathname === "/tags/assign") {
+      const body = await bodyObject(req);
+      const feedIds = feedIdsFrom(body);
+      let tag: TagRow | null;
+      if (typeof body.tagId === "number" && Number.isInteger(body.tagId)) {
+        tag = await db
+          .prepare("SELECT id, name FROM UserTags WHERE userId = ? AND id = ?")
+          .bind(user.id, body.tagId)
+          .first<TagRow>();
+        if (!tag) return fail("tag_not_found", "Tag not found", 404);
+      } else if ("name" in body) {
+        tag = await createTag(db, user.id, body.name);
+      } else {
+        throw new InputError(
+          "Body must include tagId (number) or name (string)"
+        );
+      }
+      // Joining UserFeeds skips ids the user isn't subscribed to.
+      await db
+        .prepare(
+          `INSERT OR IGNORE INTO UserFeedTags (userId, feedId, tagId)
+          SELECT userId, feedId, ? FROM UserFeeds
+          WHERE userId = ? AND feedId IN (SELECT value FROM json_each(?))`
+        )
+        .bind(tag.id, user.id, JSON.stringify(feedIds))
+        .run();
+      return ok(tag);
+    }
+
+    if (method === "POST" && pathname === "/tags/unassign") {
+      const body = await bodyObject(req);
+      const feedIds = feedIdsFrom(body);
+      if (typeof body.tagId !== "number" || !Number.isInteger(body.tagId)) {
+        throw new InputError("Body must include tagId (number)");
+      }
+      await db
+        .prepare(
+          `DELETE FROM UserFeedTags
+          WHERE userId = ? AND tagId = ? AND feedId IN (SELECT value FROM json_each(?))`
+        )
+        .bind(user.id, body.tagId, JSON.stringify(feedIds))
+        .run();
+      return ok();
     }
 
     const tagId = idFrom(pathname, /^\/tags\/(\d+)$/);

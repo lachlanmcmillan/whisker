@@ -157,31 +157,6 @@ export async function listTagsForFeed(feedId: number): Promise<Tag[]> {
   return result.data;
 }
 
-export async function assignTagToFeed(
-  feedId: number,
-  input: { tagId: number } | { name: string }
-): Promise<Tag> {
-  const res = await fetch(`${BASE}/feeds/${feedId}/tags`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(input),
-  });
-  const result = await handleResponse(res);
-  return result.data;
-}
-
-export async function unassignTagFromFeed(
-  feedId: number,
-  tagId: number
-): Promise<void> {
-  const res = await fetch(`${BASE}/feeds/${feedId}/tags/${tagId}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-  await handleResponse(res);
-}
-
 export async function listTags(): Promise<Tag[]> {
   const res = await fetch(`${BASE}/tags`, { credentials: "include" });
   const result = await handleResponse(res);
@@ -191,6 +166,16 @@ export async function listTags(): Promise<Tag[]> {
 export const renameTag = (id: number, name: string) =>
   request<Tag>(`/tags/${id}`, "PUT", { name });
 export const deleteTag = (id: number) => request<null>(`/tags/${id}`, "DELETE");
+export const updateFeedsRefreshInterval = (
+  feedIds: number[],
+  refreshIntervalMins: number | null
+) => request<null>("/feeds", "PATCH", { feedIds, refreshIntervalMins });
+export const assignTagToFeeds = (
+  feedIds: number[],
+  input: { tagId: number } | { name: string }
+) => request<Tag>("/tags/assign", "POST", { feedIds, ...input });
+export const unassignTagFromFeeds = (feedIds: number[], tagId: number) =>
+  request<null>("/tags/unassign", "POST", { feedIds, tagId });
 
 export async function updateEntry(
   feedId: number,

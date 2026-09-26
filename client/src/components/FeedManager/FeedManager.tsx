@@ -10,7 +10,11 @@ import { Button } from "$components/Button/Button";
 import { EditFeedDialog } from "$components/EditFeedDialog/EditFeedDialog";
 import { FeedAvatar } from "$components/FeedAvatar/FeedAvatar";
 import { Icon } from "$components/Icon/Icon";
-import { RefreshIntervalSelect } from "$components/RefreshIntervalSelect/RefreshIntervalSelect";
+import {
+  formatInterval,
+  PRESETS,
+  RefreshIntervalSelect,
+} from "$components/RefreshIntervalSelect/RefreshIntervalSelect";
 import { TagPicker } from "$components/TagPicker/TagPicker";
 import { timeAgo } from "$lib/timeAgo";
 import { tagColor } from "$lib/tagHue";
@@ -18,12 +22,12 @@ import {
   feeds,
   tags,
   loadTags,
-  editFeed,
   removeFeeds,
   refreshFeedNow,
   importFeeds,
   attachTag,
   detachTag,
+  setRefreshInterval,
   renameTagById,
   removeTag,
 } from "$stores/feeds.store";
@@ -298,7 +302,9 @@ function FeedsTab(props: FeedsTabProps) {
               </>
             }
             triggerClass={styles.bulkBtn}
-            onPick={name => attachTag([...selected()], name)}
+            onPick={name =>
+              void runBulk(() => attachTag([...selected()], name))
+            }
           />
           <Show when={selectedTags().length > 0}>
             <select
@@ -318,6 +324,24 @@ function FeedsTab(props: FeedsTabProps) {
               </For>
             </select>
           </Show>
+          <select
+            class={styles.select}
+            value=""
+            onChange={e => {
+              const v = e.currentTarget.value;
+              e.currentTarget.value = "";
+              const mins = v === "off" ? null : Number(v);
+              void runBulk(() => setRefreshInterval([...selected()], mins));
+            }}
+          >
+            <option value="" disabled selected>
+              Auto refresh…
+            </option>
+            <option value="off">Off</option>
+            <For each={PRESETS}>
+              {mins => <option value={mins}>{formatInterval(mins)}</option>}
+            </For>
+          </select>
           <button
             class={`${styles.bulkBtn} ${styles.danger}`}
             onClick={bulkRemove}
@@ -512,7 +536,7 @@ function FeedRow(props: FeedRowProps) {
             trigger={<Icon name="plus" size={11} />}
             triggerLabel="Add tag"
             exclude={props.feed.tags.map(t => t.id)}
-            onPick={name => attachTag([props.feed.id], name)}
+            onPick={name => void run(() => attachTag([props.feed.id], name))}
           />
         </div>
       </td>
@@ -520,9 +544,7 @@ function FeedRow(props: FeedRowProps) {
         <RefreshIntervalSelect
           value={props.feed.refreshIntervalMins}
           onChange={mins =>
-            void run(() =>
-              editFeed(props.feed.id, { refreshIntervalMins: mins })
-            )
+            void run(() => setRefreshInterval([props.feed.id], mins))
           }
         />
       </td>

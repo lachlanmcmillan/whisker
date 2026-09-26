@@ -7,8 +7,9 @@ import {
   updateFeed,
   deleteFeed,
   refreshFeed,
-  assignTagToFeed,
-  unassignTagFromFeed,
+  assignTagToFeeds,
+  unassignTagFromFeeds,
+  updateFeedsRefreshInterval,
   listTags,
   renameTag,
   deleteTag,
@@ -114,18 +115,84 @@ async function importFeeds(urls: string[]) {
   await loadFeeds();
 }
 
-async function attachTag(feedIds: number[], name: string) {
-  const [first, ...rest] = feedIds;
-  if (first === undefined) return;
-  // Assign by name once so the tag is created, then by id to avoid racing on creation.
-  const tag = await assignTagToFeed(first, { name });
-  await Promise.all(rest.map(id => assignTagToFeed(id, { tagId: tag.id })));
-  await Promise.all([loadFeeds(), loadTags()]);
+const byName = (a: Tag, b: Tag) => a.name.localeCompare(b.name);
+
+function updateFeedTags(feedIds: Set<number>, update: (tags: Tag[]) => Tag[]) {
+  setFeeds(feed => feedIds.has(feed.id), "tags", update);
+}
+
+// Stands in for a new tag's id until the server assigns one.
+let nextPendingTagId = -1;
+
+// Tag changes are applied locally first and rolled back if the request fails.
+async function attachTag(feedIds: number[], rawName: string) {
+  const name = rawName.trim().toLowerCase();
+  const existing = tags.find(t => t.name === name);
+  const pending = existing ?? { id: nextPendingTagId--, name };
+  const changed = new Set(
+    feeds
+      .filter(f => feedIds.includes(f.id) && !f.tags.some(t => t.name === name))
+      .map(f => f.id)
+  );
+  if (changed.size === 0) return;
+  updateFeedTags(changed, current => [...current, pending].sort(byName));
+
+  try {
+    const tag = await assignTagToFeeds(
+      [...changed],
+      existing ? { tagId: existing.id } : { name }
+    );
+    if (!existing) {
+      updateFeedTags(changed, current =>
+        current.map(t => (t.id === pending.id ? tag : t))
+      );
+      if (!tags.some(t => t.id === tag.id)) {
+        setTags(current => [...current, tag].sort(byName));
+      }
+    }
+  } catch (e) {
+    updateFeedTags(changed, current =>
+      current.filter(t => t.id !== pending.id)
+    );
+    throw e;
+  }
 }
 
 async function detachTag(feedIds: number[], tagId: number) {
-  await Promise.all(feedIds.map(id => unassignTagFromFeed(id, tagId)));
-  await loadFeeds();
+  const tag = feeds.flatMap(f => f.tags).find(t => t.id === tagId);
+  const changed = new Set(
+    feeds
+      .filter(f => feedIds.includes(f.id) && f.tags.some(t => t.id === tagId))
+      .map(f => f.id)
+  );
+  if (!tag || tagId < 0 || changed.size === 0) return;
+  updateFeedTags(changed, current => current.filter(t => t.id !== tagId));
+
+  try {
+    await unassignTagFromFeeds([...changed], tagId);
+  } catch (e) {
+    updateFeedTags(changed, current => [...current, tag].sort(byName));
+    throw e;
+  }
+}
+
+async function setRefreshInterval(feedIds: number[], mins: number | null) {
+  const previous = new Map(
+    feeds
+      .filter(f => feedIds.includes(f.id) && f.refreshIntervalMins !== mins)
+      .map(f => [f.id, f.refreshIntervalMins])
+  );
+  if (previous.size === 0) return;
+  setFeeds(f => previous.has(f.id), "refreshIntervalMins", mins);
+
+  try {
+    await updateFeedsRefreshInterval([...previous.keys()], mins);
+  } catch (e) {
+    for (const [id, value] of previous) {
+      setFeeds(f => f.id === id, "refreshIntervalMins", value);
+    }
+    throw e;
+  }
 }
 
 async function renameTagById(tagId: number, name: string) {
@@ -152,6 +219,7 @@ export {
   importFeeds,
   attachTag,
   detachTag,
+  setRefreshInterval,
   renameTagById,
   removeTag,
   isEntryVisible,

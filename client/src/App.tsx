@@ -273,6 +273,9 @@ function App() {
                       ← Back to feeds
                     </button>
                   </Show>
+                  <Show when={view() === "manager"}>
+                    <AddFeedButton onAdded={() => void loadFeeds()} />
+                  </Show>
                   <Show when={view() === "feeds"}>
                     <button class={styles.searchBtn} disabled>
                       <Icon name="search" size={13} /> Search feeds & posts

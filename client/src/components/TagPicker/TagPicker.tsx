@@ -8,15 +8,13 @@ interface TagPickerProps {
   triggerClass?: string;
   triggerLabel?: string;
   exclude?: number[];
-  onPick: (name: string) => Promise<void>;
+  onPick: (name: string) => void;
 }
 
 export function TagPicker(props: TagPickerProps) {
   const [open, setOpen] = createSignal(false);
   const [query, setQuery] = createSignal("");
   const [highlight, setHighlight] = createSignal(0);
-  const [submitting, setSubmitting] = createSignal(false);
-  const [error, setError] = createSignal<string | null>(null);
 
   const normalized = () => query().trim().toLowerCase();
 
@@ -36,21 +34,12 @@ export function TagPicker(props: TagPickerProps) {
     setOpen(false);
     setQuery("");
     setHighlight(0);
-    setError(null);
   };
 
-  const pick = async (name: string) => {
-    if (submitting()) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      await props.onPick(name);
-      close();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSubmitting(false);
-    }
+  // Close straight away; the caller applies the change and reports errors.
+  const pick = (name: string) => {
+    close();
+    props.onPick(name);
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
@@ -64,7 +53,7 @@ export function TagPicker(props: TagPickerProps) {
     } else if (e.key === "Enter") {
       e.preventDefault();
       const option = options()[highlight()];
-      if (option) void pick(option.name);
+      if (option) pick(option.name);
     } else if (e.key === "Escape") {
       e.preventDefault();
       close();
@@ -90,11 +79,9 @@ export function TagPicker(props: TagPickerProps) {
             type="text"
             placeholder="Find or create tag…"
             value={query()}
-            disabled={submitting()}
             onInput={e => {
               setQuery(e.currentTarget.value);
               setHighlight(0);
-              setError(null);
             }}
             onKeyDown={onKeyDown}
             ref={el => queueMicrotask(() => el.focus())}
@@ -113,8 +100,7 @@ export function TagPicker(props: TagPickerProps) {
                         i() === highlight() ? styles.optionActive : ""
                       }`}
                       onMouseEnter={() => setHighlight(i())}
-                      onClick={() => void pick(option.name)}
-                      disabled={submitting()}
+                      onClick={() => pick(option.name)}
                     >
                       <Show
                         when={!option.isNew}
@@ -133,9 +119,6 @@ export function TagPicker(props: TagPickerProps) {
                 )}
               </For>
             </ul>
-          </Show>
-          <Show when={error()}>
-            {msg => <p class={styles.error}>{msg()}</p>}
           </Show>
         </div>
       </Show>

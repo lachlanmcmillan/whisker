@@ -1,7 +1,7 @@
 import { For, Show } from "solid-js";
 import styles from "./refreshIntervalSelect.module.css";
 
-const PRESETS = [60, 360, 1440, 4320];
+export const PRESETS = [60, 360, 1440, 4320];
 
 interface RefreshIntervalSelectProps {
   value: number | null;

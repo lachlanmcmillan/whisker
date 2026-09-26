@@ -292,6 +292,18 @@ const editableFeedFields = [
   "refreshIntervalMins",
 ] as const;
 
+export function refreshIntervalFrom(value: unknown): number | null {
+  if (
+    value !== null &&
+    !(typeof value === "number" && Number.isInteger(value) && value > 0)
+  ) {
+    throw new InputError(
+      "refreshIntervalMins must be null or a positive integer"
+    );
+  }
+  return value;
+}
+
 export async function updateFeed(
   db: D1Database,
   userId: string,
@@ -299,17 +311,8 @@ export async function updateFeed(
   data: Record<string, unknown>
 ): Promise<FeedWithEntries | null> {
   if (!(await readFeed(db, userId, id))) return null;
-  if ("refreshIntervalMins" in data) {
-    const value = data.refreshIntervalMins;
-    if (
-      value !== null &&
-      !(typeof value === "number" && Number.isInteger(value) && value > 0)
-    ) {
-      throw new InputError(
-        "refreshIntervalMins must be null or a positive integer"
-      );
-    }
-  }
+  if ("refreshIntervalMins" in data)
+    refreshIntervalFrom(data.refreshIntervalMins);
   const overrides = Object.fromEntries(
     (["title", "description", "author", "image", "link"] as const)
       .filter(key => key in data)
