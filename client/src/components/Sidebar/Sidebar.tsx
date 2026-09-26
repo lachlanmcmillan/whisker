@@ -68,7 +68,7 @@ export function Sidebar(props: SidebarProps) {
               <span class={styles.itemLeft}>
                 <span
                   class={styles.tagDot}
-                  style={{ background: `oklch(0.72 0.17 ${hue})` }}
+                  style={{ background: `oklch(0.64 0.13 ${hue})` }}
                 />
                 {tag.name}
               </span>

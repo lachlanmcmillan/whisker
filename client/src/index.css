@@ -1,56 +1,66 @@
-@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=Geist:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
 
 :root {
-  /* Type */
-  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
-  --font-body: "Geist", system-ui, sans-serif;
-  --font-serif: "Instrument Serif", Georgia, serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* Type — Plex Sans everywhere */
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-display: var(--font-sans);
+  --font-body: var(--font-sans);
+  --font-serif: var(--font-sans);
+  --font-mono: var(--font-sans);
 
-  /* Surface palette (warm dark) */
-  --bg: rgb(17, 12, 8);
-  --bg-deep: rgb(11, 6, 4);
-  --surface-1: rgb(27, 21, 15);
-  --surface-2: rgb(39, 31, 24);
-  --surface-3: rgb(54, 44, 36);
-  --border: rgb(48, 39, 31);
+  /* Surface palette — warm paper (light) */
+  --bg: oklch(0.975 0.01 80);
+  --sidebar: oklch(0.955 0.012 80);
+  --surface-1: oklch(0.99 0.006 80);
+  --surface-2: oklch(0.935 0.013 80);
+  --border: oklch(0.885 0.013 80);
 
   /* Foreground ramp */
-  --fg: rgb(248, 245, 239);
-  --fg-2: rgb(203, 195, 186);
-  --fg-3: rgb(141, 132, 123);
-  --fg-4: rgb(92, 84, 75);
+  --fg: oklch(0.22 0.015 80);
+  --fg-2: oklch(0.36 0.015 80);
+  --fg-3: oklch(0.5 0.014 80);
+  --fg-4: oklch(0.6 0.012 80);
 
-  /* Accent (vivid amber) */
-  --accent: rgb(255, 164, 48);
-  --accent-deep: rgb(215, 92, 0);
-  --accent-tint: rgba(255, 164, 48, 0.12);
-  --accent-glow: rgba(255, 164, 48, 0.4);
-  --accent-fg: rgb(30, 13, 1);
+  /* Accent (blue) */
+  --accent: oklch(0.54 0.16 262);
+  --accent-deep: oklch(0.46 0.16 262);
+  --accent-soft: oklch(0.54 0.16 262 / 0.1);
+  --on-accent: oklch(0.99 0 0);
+
+  /* Placeholder thumbnails */
+  --thumb-l1: 0.88;
+  --thumb-l2: 0.8;
+  --thumb-c: 0.045;
+  --thumb-stripe: oklch(0 0 0 / 0.04);
+
+  --shadow-pop: 0 10px 30px oklch(0 0 0 / 0.12);
 
   /* Misc */
   --danger: #d9534f;
   --radius: 8px;
   --radius-lg: 10px;
-  --surface-card: rgba(255, 255, 255, 0.025);
-  --card-pad: 8px;
   --read-opacity: 0.5;
   --read-grayscale: grayscale(100%);
 
   /* Back-compat aliases for older components */
+  --bg-deep: var(--sidebar);
+  --surface-3: var(--border);
+  --accent-tint: var(--accent-soft);
+  --accent-fg: var(--on-accent);
   --bg-primary: var(--bg);
   --bg-surface: var(--surface-1);
   --bg-hover: var(--surface-2);
   --text-primary: var(--fg);
   --text-secondary: var(--fg-3);
   --text-muted: var(--fg-4);
-  --accent-dim: var(--accent-tint);
+  --accent-dim: var(--accent-soft);
 
-  font-family: var(--font-body);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: dark;
+  color-scheme: light;
   color: var(--fg);
   background-color: var(--bg);
 
@@ -60,15 +70,41 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+:root[data-theme="dark"] {
+  --bg: oklch(0.19 0.01 80);
+  --sidebar: oklch(0.165 0.01 80);
+  --surface-1: oklch(0.225 0.011 80);
+  --surface-2: oklch(0.27 0.012 80);
+  --border: oklch(0.31 0.012 80);
+
+  --fg: oklch(0.95 0.006 80);
+  --fg-2: oklch(0.8 0.01 80);
+  --fg-3: oklch(0.65 0.01 80);
+  --fg-4: oklch(0.52 0.01 80);
+
+  --accent: oklch(0.72 0.12 262);
+  --accent-deep: oklch(0.62 0.14 262);
+  --accent-soft: oklch(0.72 0.12 262 / 0.14);
+  --on-accent: oklch(0.18 0.03 262);
+
+  --thumb-l1: 0.34;
+  --thumb-l2: 0.26;
+  --thumb-stripe: oklch(1 0 0 / 0.04);
+
+  --shadow-pop: 0 10px 30px oklch(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background:
-    radial-gradient(ellipse at top left, rgba(255, 164, 48, 0.04), transparent 60%),
-    radial-gradient(ellipse at bottom right, rgba(255, 255, 255, 0.025), transparent 65%),
-    var(--bg);
-  background-attachment: fixed;
+  background: var(--bg);
+}
+
+button {
+  font-family: inherit;
 }
 
 ::-webkit-scrollbar {
@@ -76,7 +112,7 @@ body {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--surface-3);
+  background: var(--border);
   border-radius: 99px;
 }
 ::-webkit-scrollbar-track {

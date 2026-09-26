@@ -11,6 +11,7 @@ import { FeedManager } from "$components/FeedManager/FeedManager";
 import { DatabaseExplorer } from "./DatabaseExplorer";
 import { feeds, loadFeeds } from "$stores/feeds.store";
 import { appSettingsStore } from "$stores/settings.store";
+import { themeMode, toggleThemeMode } from "$stores/theme.store";
 import styles from "./App.module.css";
 
 type View = "feeds" | "manager" | "explorer";
@@ -194,12 +195,19 @@ function App() {
                   onClick={handleSelectAllInbox}
                   aria-label="Go to homepage"
                 >
-                  <Icon name="whisker" size={28} color="var(--accent)" />
                   <h1 class={styles.wordmark}>Whisker</h1>
                   <span class={styles.subdomain}>your reading queue</span>
                 </button>
               </div>
               <div class={styles.headerActions}>
+                <button
+                  class={styles.modeBtn}
+                  onClick={toggleThemeMode}
+                  title={themeMode() === "dark" ? "Switch to light" : "Switch to dark"}
+                >
+                  <span class={styles.modeSwatch} />
+                  {themeMode() === "dark" ? "Light" : "Dark"}
+                </button>
                 <Show when={view() !== "feeds"}>
                   <button class={styles.searchBtn} onClick={() => setView("feeds")}>
                     ← Back to feeds
@@ -227,16 +235,14 @@ function App() {
                 <MoodTile
                   label="All"
                   count={totalCount()}
-                  hue={65}
                   active={tagId() === "all" && feedId() === null}
                   onClick={() => handleSelectTag("all")}
                 />
                 <For each={tagsWithCounts()}>
-                  {({ tag, count, hue }) => (
+                  {({ tag, count }) => (
                     <MoodTile
                       label={tag.name}
                       count={count}
-                      hue={hue}
                       active={tagId() === tag.id && feedId() === null}
                       onClick={() => handleSelectTag(tag.id)}
                     />
@@ -246,31 +252,6 @@ function App() {
 
               <div class={styles.sectionDivider}>
                 <h2 class={styles.sectionH2}>
-                  <span class={styles.h2Static}>Showing</span>
-                  <button
-                    class={`${styles.h2Toggle} ${
-                      filter() === "all" ? styles.h2ToggleActive : ""
-                    }`}
-                    onClick={() => setFilter("all")}
-                  >
-                    All
-                  </button>
-                  <button
-                    class={`${styles.h2Toggle} ${
-                      filter() === "unread" ? styles.h2ToggleActive : ""
-                    }`}
-                    onClick={() => setFilter("unread")}
-                  >
-                    Unread
-                    <span
-                      class={`${styles.h2Badge} ${
-                        filter() === "unread" ? styles.h2BadgeActive : ""
-                      }`}
-                    >
-                      {unreadCount()}
-                    </span>
-                  </button>
-                  <span class={styles.h2Static}>in</span>
                   <Show
                     when={activeFeed()}
                     fallback={<span>{activeTag()?.tag.name ?? "All"}</span>}
@@ -286,23 +267,50 @@ function App() {
                     {visibleEntries().length} posts
                   </span>
                 </h2>
-                <div class={styles.toolGroup}>
-                  <button
-                    class={`${styles.segBtn} ${
-                      appSettings.layout === "Grid" ? styles.segBtnActive : ""
-                    }`}
-                    onClick={() => setAppSettings("layout", "Grid")}
-                  >
-                    <Icon name="grid" size={12} /> Grid
-                  </button>
-                  <button
-                    class={`${styles.segBtn} ${
-                      appSettings.layout === "List" ? styles.segBtnActive : ""
-                    }`}
-                    onClick={() => setAppSettings("layout", "List")}
-                  >
-                    <Icon name="list" size={12} /> List
-                  </button>
+                <div class={styles.tools}>
+                  <div class={styles.toolGroup}>
+                    <button
+                      class={`${styles.segBtn} ${
+                        filter() === "all" ? styles.segBtnActive : ""
+                      }`}
+                      onClick={() => setFilter("all")}
+                    >
+                      All
+                    </button>
+                    <button
+                      class={`${styles.segBtn} ${
+                        filter() === "unread" ? styles.segBtnActive : ""
+                      }`}
+                      onClick={() => setFilter("unread")}
+                    >
+                      Unread
+                      <span
+                        class={`${styles.segBadge} ${
+                          filter() === "unread" ? styles.segBadgeActive : ""
+                        }`}
+                      >
+                        {unreadCount()}
+                      </span>
+                    </button>
+                  </div>
+                  <div class={styles.toolGroup}>
+                    <button
+                      class={`${styles.segBtn} ${
+                        appSettings.layout === "Grid" ? styles.segBtnActive : ""
+                      }`}
+                      onClick={() => setAppSettings("layout", "Grid")}
+                    >
+                      <Icon name="grid" size={12} /> Grid
+                    </button>
+                    <button
+                      class={`${styles.segBtn} ${
+                        appSettings.layout === "List" ? styles.segBtnActive : ""
+                      }`}
+                      onClick={() => setAppSettings("layout", "List")}
+                    >
+                      <Icon name="list" size={12} /> List
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -355,7 +363,6 @@ function App() {
 interface MoodTileProps {
   label: string;
   count: number;
-  hue: number;
   active: boolean;
   onClick: () => void;
 }
@@ -364,14 +371,10 @@ function MoodTile(props: MoodTileProps) {
   return (
     <button
       class={`${styles.moodTile} ${props.active ? styles.moodTileActive : ""}`}
-      style={{ "--tile-hue": props.hue }}
       onClick={props.onClick}
     >
-      <span class={styles.moodTileRow}>
-        <span class={styles.moodDot} />
-        <span class={styles.moodLabel}>{props.label}</span>
-        <span class={styles.moodCount}>{props.count}</span>
-      </span>
+      <span class={styles.moodLabel}>{props.label}</span>
+      <span class={styles.moodCount}>{props.count}</span>
     </button>
   );
 }
