@@ -11,7 +11,9 @@
   opacity: var(--read-opacity);
 }
 
+/* Sit above the thumbnail link, which is positioned for the duration badge. */
 .card > button {
+  z-index: 1;
   background: var(--surface-1);
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
 }

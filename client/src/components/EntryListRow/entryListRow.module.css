@@ -13,6 +13,11 @@
   opacity: var(--read-opacity);
 }
 
+/* Sit above the thumbnail link, which is positioned for the duration badge. */
+.row > button {
+  z-index: 1;
+}
+
 .row:hover > button,
 .row > button:focus-visible {
   opacity: 1;
